@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FlexiPage xmlns="http://soap.sforce.com/2006/04/metadata">
+    <description>Registration report builder for filtering and exporting Traction Rec registration data with optional question answers.</description>
+    <flexiPageRegions>
+        <itemInstances>
+            <componentInstance>
+                <componentName>c:registrationReportBuilder</componentName>
+                <identifier>c__registrationReportBuilder</identifier>
+            </componentInstance>
+        </itemInstances>
+        <name>main</name>
+        <type>Region</type>
+    </flexiPageRegions>
+    <masterLabel>Registration Report Builder</masterLabel>
+    <template>
+        <name>flexipage:defaultAppHomeTemplate</name>
+    </template>
+    <type>AppPage</type>
+</FlexiPage>

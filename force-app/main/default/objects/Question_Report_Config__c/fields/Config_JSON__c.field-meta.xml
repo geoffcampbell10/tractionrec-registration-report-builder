@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Config_JSON__c</fullName>
+    <description>JSON blob storing the full report configuration: group, selected questions, and filters.</description>
+    <label>Configuration JSON</label>
+    <length>32768</length>
+    <type>LongTextArea</type>
+    <visibleLines>4</visibleLines>
+</CustomField>

@@ -1,0 +1,413 @@
+<template>
+    <div class="aqr-root">
+
+        <!-- Loading overlay -->
+        <template lwc:if={isLoading}>
+            <div class="aqr-spinner-overlay">
+                <lightning-spinner alternative-text="Loading" size="medium" variant="inverse"></lightning-spinner>
+            </div>
+        </template>
+
+        <!-- ── Header ── -->
+        <div class="aqr-header">
+            <div class="aqr-header__icon">
+                <svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="36" height="36" rx="8" fill="#1e40af"/>
+                    <rect x="5" y="5" width="26" height="6" rx="2" fill="white" fill-opacity="0.38"/>
+                    <rect x="5" y="14" width="6" height="4.5" rx="1.25" fill="white" fill-opacity="0.22"/>
+                    <rect x="5" y="21" width="6" height="4.5" rx="1.25" fill="white" fill-opacity="0.22"/>
+                    <rect x="14" y="14" width="11" height="4.5" rx="1.25" fill="white" fill-opacity="0.8"/>
+                    <rect x="14" y="21" width="7"  height="4.5" rx="1.25" fill="white" fill-opacity="0.58"/>
+                    <rect x="27" y="14" width="4"  height="4.5" rx="1.25" fill="white" fill-opacity="0.55"/>
+                    <rect x="27" y="21" width="4"  height="4.5" rx="1.25" fill="white" fill-opacity="0.35"/>
+                </svg>
+            </div>
+            <div class="aqr-header__text">
+                <h1 class="aqr-header__title">Registration Report Builder</h1>
+            </div>
+            <div class="aqr-header__actions">
+                <button class={runBtnClass} disabled={isLoading} onclick={handleRunReport}>
+                    <svg width="10" height="10" viewBox="0 0 12 12" fill="currentColor">
+                        <polygon points="2,1 11,6 2,11"/>
+                    </svg>
+                    Run Report
+                </button>
+            </div>
+        </div>
+
+        <!-- ── Error banner ── -->
+        <template lwc:if={errorMessage}>
+            <div class="aqr-error">
+                <span class="aqr-error__icon">
+                    <lightning-icon icon-name="utility:error" size="x-small"
+                        alternative-text="Error"></lightning-icon>
+                </span>
+                {errorMessage}
+            </div>
+        </template>
+
+        <!-- ── Saved Reports ── -->
+        <template lwc:if={hasSavedConfigs}>
+            <div class="aqr-configs-bar">
+                <div class="aqr-configs-bar__row">
+                    <div class="aqr-configs-bar__combo">
+                        <lightning-combobox
+                            label="Folder"
+                            placeholder="— Select a folder —"
+                            value={selectedFolderFilter}
+                            options={uniqueFolderOptions}
+                            onchange={handleFolderFilterChange}>
+                        </lightning-combobox>
+                    </div>
+                    <template lwc:if={selectedFolderFilter}>
+                        <div class="aqr-configs-bar__combo">
+                            <lightning-combobox
+                                label="Saved Reports"
+                                placeholder="— Select a report —"
+                                value={selectedConfigId}
+                                options={filteredConfigOptions}
+                                onchange={handleConfigSelect}>
+                            </lightning-combobox>
+                        </div>
+                    </template>
+                    <button class="aqr-btn-sm aqr-btn-sm--neutral"
+                        disabled={noConfigSelected}
+                        onclick={handleLoadConfig}>Load</button>
+                    <button class="aqr-btn-sm aqr-btn-sm--danger"
+                        disabled={noConfigSelected}
+                        onclick={handleDeleteConfig}>Delete</button>
+                </div>
+                <template lwc:if={loadedConfigName}>
+                    <div class="aqr-configs-badge">
+                        <lightning-icon icon-name="utility:check" size="xx-small"
+                            alternative-text="Loaded"></lightning-icon>
+                        Loaded: <strong>{loadedConfigName}</strong>
+                    </div>
+                </template>
+            </div>
+        </template>
+
+        <!-- ── Body: side-by-side ── -->
+        <div class="aqr-body">
+
+            <!-- LEFT: Build Panel -->
+            <div class="aqr-panel">
+                <div class="aqr-panel__scroll">
+
+                    <div class="aqr-panel__title">Build Report</div>
+
+                    <!-- Section: Filters -->
+                    <div class="aqr-sec__hdr aqr-sec__hdr--first">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round">
+                            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                        </svg>
+                        <span class="aqr-sec__title">Filters</span>
+                        <button class="aqr-clr-btn" onclick={clearFilters}>Clear</button>
+                    </div>
+                    <div class="aqr-sec__body">
+                        <div class="aqr-field">
+                            <label class="aqr-label" for="aqr-program">Program Name</label>
+                            <input id="aqr-program" type="text" class="aqr-input"
+                                value={programNameFilter} placeholder="e.g. Aquatics"
+                                oninput={handleProgramNameChange}>
+                        </div>
+                        <div class="aqr-field">
+                            <label class="aqr-label" for="aqr-course">Course Name</label>
+                            <input id="aqr-course" type="text" class="aqr-input"
+                                value={courseNameFilter} placeholder="e.g. Judaism"
+                                oninput={handleCourseNameChange}>
+                        </div>
+                        <div class="aqr-field">
+                            <label class="aqr-label" for="aqr-session">Course Session</label>
+                            <input id="aqr-session" type="text" class="aqr-input"
+                                value={courseSessionFilter} placeholder="e.g. Spring 2025"
+                                oninput={handleCourseSessionChange}>
+                        </div>
+                        <div class="aqr-date-grid">
+                            <div class="aqr-field">
+                                <label class="aqr-label" for="aqr-from">Start From</label>
+                                <input id="aqr-from" type="date" class="aqr-input"
+                                    value={startDateFrom} onchange={handleStartDateFromChange}>
+                            </div>
+                            <div class="aqr-field">
+                                <label class="aqr-label" for="aqr-to">Start To</label>
+                                <input id="aqr-to" type="date" class="aqr-input"
+                                    value={startDateTo} onchange={handleStartDateToChange}>
+                            </div>
+                        </div>
+
+                        <div class="aqr-sub" style="margin-top: 0.5rem;">
+                            <span>Status</span>
+                            <div class="aqr-alln">
+                                <button class={statusAllBtnClass} onclick={showAllStatuses}>All</button>
+                                <button class={statusNoneBtnClass} onclick={showNoneStatuses}>None</button>
+                            </div>
+                        </div>
+                        <div class="aqr-pills">
+                            <template for:each={statusPillOptions} for:item="s">
+                                <button key={s.value} class={s.pillClass}
+                                    data-value={s.value}
+                                    onclick={handleStatusPillToggle}>{s.label}</button>
+                            </template>
+                        </div>
+                        <template lwc:if={noStatusSelected}>
+                            <p class="aqr-pill-hint">No status selected — all statuses included</p>
+                        </template>
+                    </div>
+
+                    <!-- Section: Columns & Groups -->
+                    <div class="aqr-sec__hdr">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round">
+                            <rect x="3" y="3" width="7" height="18"/>
+                            <rect x="14" y="3" width="7" height="18"/>
+                        </svg>
+                        <span class="aqr-sec__title">Columns</span>
+                    </div>
+                    <div class="aqr-sec__body">
+                        <div class="aqr-sub">
+                            <span>Registration Fields</span>
+                            <div class="aqr-alln">
+                                <button class={fieldsAllBtnClass} onclick={showAllFields}>All</button>
+                                <button class={fieldsNoneBtnClass} onclick={showNoneFields}>None</button>
+                            </div>
+                        </div>
+                        <div class="aqr-pills">
+                            <template for:each={fixedColumnOptions} for:item="col">
+                                <button key={col.fieldName} class={col.pillClass}
+                                    data-field={col.fieldName}
+                                    onclick={handleToggleColumn}>{col.label}</button>
+                            </template>
+                        </div>
+
+                        <div class="aqr-sub aqr-sub--gap">
+                            <span>Additional Columns</span>
+                        </div>
+                        <button class="aqr-add-cols-btn" onclick={handleOpenFieldPicker}>{addColumnsLabel}</button>
+                        <template lwc:if={hasSelectedExtraFields}>
+                            <div class="aqr-pills" style="margin-top: 0.3rem;">
+                                <template for:each={selectedExtraPills} for:item="pill">
+                                    <button key={pill.apiKey} class="aqr-pill aqr-pill--active"
+                                        data-key={pill.apiKey}
+                                        onclick={handleRemoveExtraField}>{pill.label} ×</button>
+                                </template>
+                            </div>
+                        </template>
+
+                        <div class="aqr-sub aqr-sub--gap">
+                            <span>Question Groups</span>
+                            <template lwc:if={hasAvailableGroups}>
+                                <div class="aqr-alln">
+                                    <button class={groupsAllBtnClass} onclick={showAllGroups}>All</button>
+                                    <button class={groupsNoneBtnClass} onclick={hideAllGroups}>None</button>
+                                </div>
+                            </template>
+                        </div>
+                        <template lwc:if={hasAvailableGroups}>
+                            <div class="aqr-pills">
+                                <template for:each={groupFilterItems} for:item="g">
+                                    <button key={g.name} class={g.pillClass}
+                                        data-group={g.name}
+                                        onclick={handleGroupPillToggle}>{g.name}</button>
+                                </template>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                            <p class="aqr-pill-hint">Run the report once to see available question groups</p>
+                        </template>
+                    </div>
+
+                </div><!-- end aqr-panel__scroll -->
+            </div><!-- end aqr-panel -->
+
+            <!-- RIGHT: Results -->
+            <div class="aqr-results-area">
+
+                <template lwc:if={hasResults}>
+
+                    <template lwc:if={showPendingState}>
+                        <div class="aqr-stale-bar">
+                            <lightning-icon icon-name="utility:warning" size="x-small"
+                                alternative-text="Warning"></lightning-icon>
+                            Filters changed — click <strong>Run Report</strong> to refresh results
+                        </div>
+                    </template>
+
+                    <!-- Toolbar: count + exports -->
+                    <div class="aqr-toolbar">
+                        <div>
+                            <div class="aqr-count">
+                                <span class="aqr-count__number">{totalRows}</span>
+                                <span class="aqr-count__label">registration(s)</span>
+                            </div>
+                            <template lwc:if={filterSummary}>
+                                <div class="aqr-count__summary">{filterSummary}</div>
+                            </template>
+                        </div>
+                        <div class="aqr-toolbar-actions">
+                            <button class="aqr-export-btn" onclick={handleExportCsv}>CSV</button>
+                            <button class="aqr-export-btn" disabled={xlsxNotReady}
+                                onclick={handleExportExcel}>Excel</button>
+                            <button class="aqr-export-btn" onclick={handleExportPdf}>PDF / Print</button>
+                        </div>
+                    </div>
+
+                    <!-- Data table -->
+                    <div class="aqr-table-wrap">
+                        <lightning-datatable
+                            key-field="registrationId"
+                            data={tableData}
+                            columns={tableColumns}
+                            hide-checkbox-column
+                            wrap-text-max-lines="3"
+                            sorted-by={sortedBy}
+                            sorted-direction={sortedDirection}
+                            onsort={handleSort}>
+                        </lightning-datatable>
+                    </div>
+
+                    <!-- Save report -->
+                    <div class="aqr-save-section no-print">
+                        <template lwc:if={showSaveForm}>
+                            <div class="aqr-save-form">
+                                <p class="aqr-save-form__title">{saveFormTitle}</p>
+                                <template lwc:if={currentConfigId}>
+                                    <p class="aqr-save-form__hint">
+                                        <strong>Save</strong> overwrites <em>{loadedConfigName}</em>.
+                                        Use <strong>Save As...</strong> to keep the original and create a new copy.
+                                    </p>
+                                </template>
+                                <lightning-input
+                                    label="Report Name"
+                                    required
+                                    value={saveConfigName}
+                                    onchange={handleSaveNameChange}>
+                                </lightning-input>
+                                <lightning-combobox
+                                    label="Folder"
+                                    required
+                                    placeholder="— Select or create a folder —"
+                                    value={saveConfigFolderCombo}
+                                    options={folderOptionsForSave}
+                                    class="slds-m-top_x-small"
+                                    onchange={handleSaveFolderComboChange}>
+                                </lightning-combobox>
+                                <template lwc:if={showNewFolderInput}>
+                                    <lightning-input
+                                        label="New Folder Name"
+                                        required
+                                        placeholder="e.g. Aquatics, Summer 2025"
+                                        value={saveConfigFolder}
+                                        class="slds-m-top_x-small"
+                                        onchange={handleSaveFolderChange}>
+                                    </lightning-input>
+                                </template>
+                                <lightning-input
+                                    label="Description (optional)"
+                                    value={saveConfigDesc}
+                                    class="slds-m-top_x-small"
+                                    onchange={handleSaveDescChange}>
+                                </lightning-input>
+                                <div class="aqr-save-form__actions">
+                                    <template lwc:if={currentConfigId}>
+                                        <button class="aqr-btn-save"
+                                            onclick={handleSaveConfig}>Save</button>
+                                        <button class="aqr-btn-save-outline"
+                                            onclick={handleSaveAsNew}>Save As...</button>
+                                    </template>
+                                    <template lwc:else>
+                                        <button class="aqr-btn-save"
+                                            onclick={handleSaveConfig}>Save</button>
+                                    </template>
+                                    <button class="aqr-btn-cancel"
+                                        onclick={handleCancelSave}>Cancel</button>
+                                </div>
+                            </div>
+                        </template>
+                        <template lwc:else>
+                            <button class="aqr-btn-save-trigger"
+                                onclick={handleShowSaveForm}>{saveTriggerLabel}</button>
+                        </template>
+                    </div>
+
+                </template>
+
+                <!-- Too many results -->
+                <template lwc:elseif={hasTooManyResults}>
+                    <div class="aqr-overlimit">
+                        <div class="aqr-overlimit__icon">
+                            <lightning-icon icon-name="utility:filter" size="large"
+                                alternative-text="Refine filters"></lightning-icon>
+                        </div>
+                        <h2 class="aqr-overlimit__title">Your filters are too broad</h2>
+                        <p class="aqr-overlimit__msg">{tooManyResultsMsg}</p>
+                        <p class="aqr-overlimit__hint">Suggestions: add a <strong>Program Name</strong>,
+                            narrow the <strong>Start Date</strong> range, filter by
+                            <strong>Course Name</strong>, or select specific
+                            <strong>Statuses</strong>.</p>
+                    </div>
+                </template>
+
+                <!-- Empty state -->
+                <template lwc:else>
+                    <div class="aqr-empty">
+                        <div class="aqr-empty__icon">
+                            <svg width="52" height="52" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="36" height="36" rx="8" fill="#1e40af"/>
+                                <rect x="5" y="5" width="26" height="6" rx="2" fill="white" fill-opacity="0.38"/>
+                                <rect x="5" y="14" width="6" height="4.5" rx="1.25" fill="white" fill-opacity="0.22"/>
+                                <rect x="5" y="21" width="6" height="4.5" rx="1.25" fill="white" fill-opacity="0.22"/>
+                                <rect x="14" y="14" width="11" height="4.5" rx="1.25" fill="white" fill-opacity="0.8"/>
+                                <rect x="14" y="21" width="7"  height="4.5" rx="1.25" fill="white" fill-opacity="0.58"/>
+                                <rect x="27" y="14" width="4"  height="4.5" rx="1.25" fill="white" fill-opacity="0.55"/>
+                                <rect x="27" y="21" width="4"  height="4.5" rx="1.25" fill="white" fill-opacity="0.35"/>
+                            </svg>
+                        </div>
+                        <p class="aqr-empty__text">Set your filters and click <strong>Run Report</strong> to see results</p>
+                    </div>
+                </template>
+
+            </div><!-- end aqr-results-area -->
+
+        </div><!-- end aqr-body -->
+
+        <!-- ── Field Picker Modal ── -->
+        <template lwc:if={showFieldPicker}>
+            <div class="aqr-modal-overlay" onclick={handlePickerOverlayClick}>
+                <div class="aqr-modal">
+                    <div class="aqr-modal__hdr">
+                        <span class="aqr-modal__title">Add Columns</span>
+                        <button class="aqr-modal__close" onclick={handleCloseFieldPicker}>&times;</button>
+                    </div>
+                    <div class="aqr-modal__search-wrap">
+                        <input type="text" class="aqr-input" placeholder="Search fields..."
+                            value={fieldPickerSearch} oninput={handleFieldPickerSearch}>
+                    </div>
+                    <div class="aqr-modal__body">
+                        <template for:each={fieldPickerGroups} for:item="grp">
+                            <div key={grp.name} class="aqr-modal__grp">
+                                <div class="aqr-modal__grp-name">{grp.name} Fields</div>
+                                <template for:each={grp.fields} for:item="fld">
+                                    <label key={fld.apiKey} class="aqr-modal__row">
+                                        <input type="checkbox"
+                                            data-key={fld.apiKey}
+                                            checked={fld.isChecked}
+                                            onchange={handleFieldPickerToggle}>
+                                        <span class="aqr-modal__row-label">{fld.label}</span>
+                                    </label>
+                                </template>
+                                <template lwc:if={grp.isEmpty}>
+                                    <p class="aqr-pill-hint" style="padding: 0.4rem 0 0.2rem;">No matching fields</p>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+                    <div class="aqr-modal__footer">
+                        <button class="aqr-btn-save" onclick={handleApplyFieldPicker}>Apply</button>
+                        <button class="aqr-btn-cancel" onclick={handleCloseFieldPicker}>Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+    </div><!-- end aqr-root -->
+</template>
