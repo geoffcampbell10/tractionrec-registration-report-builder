@@ -1,8 +1,6 @@
 # TractionRec Registration Report Builder
 
-A Salesforce Lightning Web Component that lets staff build, save, and export custom
-reports on TractionRec (`TREX1__`) registrations — including registration answers to
-custom questions.
+A Salesforce Lightning Web Component that lets users build, save, and export custom reports on TractionRec (TREX1__) registrations. It pivots custom question answers into their own dedicated columns, ensuring you get a clean, flat report with exactly one row per registration.
 
 ## Why This Exists
 
