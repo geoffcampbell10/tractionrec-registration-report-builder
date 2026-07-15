@@ -2,7 +2,22 @@
 
 A Salesforce Lightning Web Component that lets staff build, save, and export custom
 reports on TractionRec (`TREX1__`) registrations — including registration answers to
-custom questions — without needing a Salesforce admin to build a report or dashboard.
+custom questions.
+
+## Why This Exists
+
+TractionRec stores each custom question's answer as its own record
+(`TREX1__Answered_Question__c`), related to a Registration. Standard Salesforce
+reporting can't pivot those answer *records* into one column per question next to the
+registration and contact details — you'd only ever get a report with one row per
+answered question, not one row per registration with all its answers laid out side by
+side.
+
+This tool solves that: the Apex controller pulls the answered-question rows for the
+matching registrations and pivots them in-memory into dynamic columns (one per
+question, grouped by question group), so staff get the flat, spreadsheet-style view —
+one row per registration — that TractionRec's data model can't produce through
+out-of-the-box reports.
 
 ## Features
 
@@ -29,7 +44,8 @@ custom questions — without needing a Salesforce admin to build a report or das
 
 - A Salesforce org with the **TractionRec** managed package (`TREX1__` namespace)
   installed.
-- Salesforce CLI (`sf`) for deployment.
+- A way to deploy metadata to the org — either the Salesforce CLI (`sf`) or Workbench
+  (no CLI install required). See [Deployment](#deployment) below.
 
 ## Project Structure
 
@@ -47,11 +63,15 @@ force-app/main/default/
 
 ## Deployment
 
-```powershell
-sf project deploy start --manifest package.xml --target-org <your-org-alias>
-```
+For a full, step-by-step walkthrough (no CLI required), see **[install.md](install.md)**.
+It covers both:
 
-Or deploy the whole `force-app` source directory:
+- **Workbench** — download the release ZIP and deploy it through a browser, no local
+  tooling needed.
+- **Salesforce CLI** — clone/download the project and deploy with `sf project deploy
+  start`, best if you're deploying to multiple orgs repeatedly.
+
+Short version for CLI users already set up:
 
 ```powershell
 sf project deploy start --source-dir force-app --target-org <your-org-alias>
