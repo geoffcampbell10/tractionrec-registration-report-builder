@@ -87,37 +87,37 @@ Replace `my-org` with the nickname from Step 4.
 1 of 6 — custom object
 
 ```
-sf project deploy start --source-dir "force-app/main/default/objects/Question_Report_Config__c" --target-org my-org
+sf project deploy start --source-dir "registration-report-builder/main/default/objects/Question_Report_Config__c" --target-org my-org
 ```
 
 2 of 6 — Apex controller
 
 ```
-sf project deploy start --source-dir force-app/main/default/classes/RegistrationReportController.cls --target-org my-org
+sf project deploy start --source-dir registration-report-builder/main/default/classes/RegistrationReportController.cls --target-org my-org
 ```
 
 3 of 6 — Apex test class
 
 ```
-sf project deploy start --source-dir force-app/main/default/classes/RegistrationReportControllerTest.cls --target-org my-org
+sf project deploy start --source-dir registration-report-builder/main/default/classes/RegistrationReportControllerTest.cls --target-org my-org
 ```
 
 4 of 6 — Excel library
 
 ```
-sf project deploy start --source-dir force-app/main/default/staticresources --target-org my-org
+sf project deploy start --source-dir registration-report-builder/main/default/staticresources --target-org my-org
 ```
 
 5 of 6 — component
 
 ```
-sf project deploy start --source-dir force-app/main/default/lwc/registrationReportBuilder --target-org my-org
+sf project deploy start --source-dir registration-report-builder/main/default/lwc/registrationReportBuilder --target-org my-org
 ```
 
 6 of 6 — App Launcher tab
 
 ```
-sf project deploy start --source-dir force-app/main/default/tabs/Registration_Report_Builder.tab-meta.xml --target-org my-org
+sf project deploy start --source-dir registration-report-builder/main/default/tabs/Registration_Report_Builder.tab-meta.xml --target-org my-org
 ```
 
 ---

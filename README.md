@@ -48,7 +48,7 @@ out-of-the-box reports.
 ## Project Structure
 
 ```
-force-app/main/default/
+registration-report-builder/main/default/
 ├── classes/
 │   ├── RegistrationReportController.cls       Apex controller (queries, saved-config CRUD)
 │   └── RegistrationReportControllerTest.cls   Apex test class
@@ -72,7 +72,7 @@ It covers both:
 Short version for CLI users already set up:
 
 ```powershell
-sf project deploy start --source-dir force-app --target-org <your-org-alias>
+sf project deploy start --source-dir registration-report-builder --target-org <your-org-alias>
 ```
 
 After deployment, add the **Registration Report Builder** tab to an app, or drop the
