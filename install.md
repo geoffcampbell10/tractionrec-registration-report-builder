@@ -33,10 +33,17 @@ No installation needed. Just a browser and your Salesforce login.
 
 1. In the top menu click **migration → Deploy**
 2. Click **Choose File** and select the ZIP you downloaded
-3. Set **Test Level** to `RunSpecifiedTests`
-4. In the **Run Tests** box that appears, enter `RegistrationReportControllerTest`
-5. Click **Next**, then **Deploy**
-6. Wait for the deployment to finish — it will show a green success message when done
+3. Tick **Single Package** — this one is required
+4. Tick **Rollback On Error** so a partial failure leaves nothing behind
+5. Set **Test Level** to `RunSpecifiedTests`
+6. In the **Run Tests** box that appears, enter `RegistrationReportControllerTest`
+7. Click **Next**, then **Deploy**
+8. Wait for the deployment to finish — it will show a green success message when done
+
+If the deploy fails with **"No package.xml found"** repeated several times, **Single
+Package** was left unticked. Without it Salesforce treats every folder inside the ZIP
+as a separate package and looks for a `package.xml` in each one, producing one error
+per folder.
 
 Running only this tool's own test class keeps the deploy independent of the rest of
 your org, so an unrelated failing test elsewhere cannot block the install.
