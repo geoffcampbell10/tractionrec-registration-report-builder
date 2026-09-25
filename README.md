@@ -54,6 +54,7 @@ registration-report-builder/main/default/
 │   └── RegistrationReportControllerTest.cls   Apex test class
 ├── lwc/registrationReportBuilder/             The report builder LWC (UI, export, state)
 ├── objects/Question_Report_Config__c/         Custom object for saved report configs
+├── permissionsets/                            Registration Report Builder User perm set
 ├── flexipages/Registration_Report_Builder.flexipage-meta.xml
 ├── tabs/Registration_Report_Builder.tab-meta.xml
 └── staticresources/SheetJS.js                 Bundled SheetJS library for Excel export
@@ -67,7 +68,7 @@ It covers both:
 - **Workbench** — download the release ZIP and deploy it through a browser, no local
   tooling needed.
 - **Salesforce CLI** — clone/download the project and deploy with `sf project deploy
-  start`, best if you're deploying to multiple orgs repeatedly.
+  start`.
 
 Short version for CLI users already set up:
 
@@ -75,8 +76,21 @@ Short version for CLI users already set up:
 sf project deploy start --source-dir registration-report-builder --target-org <your-org-alias>
 ```
 
-After deployment, add the **Registration Report Builder** tab to an app, or drop the
-`registrationReportBuilder` component onto a Lightning page via the App Builder.
+## Granting Access
+
+The deploy includes a **Registration Report Builder User** permission set. Nobody can
+see the tab until they have it, including the admin who installed it:
+
+```powershell
+sf org assign permset --name Registration_Report_Builder_User --target-org <your-org-alias>
+```
+
+Or from Setup → Permission Sets → Registration Report Builder User → Manage Assignments.
+
+It grants the Apex controller, the App Launcher tab, and read/create/edit/delete on
+`Question_Report_Config__c` and its fields. It deliberately grants **no TractionRec
+object or field permissions** — users still see only the registrations their existing
+profile allows, so assigning it cannot widen anyone's access to program data.
 
 ## Notes
 

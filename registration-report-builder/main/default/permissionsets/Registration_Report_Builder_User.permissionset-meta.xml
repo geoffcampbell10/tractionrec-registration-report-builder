@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<PermissionSet xmlns="http://soap.sforce.com/2006/04/metadata">
+    <label>Registration Report Builder User</label>
+    <description>Access to the Registration Report Builder: Apex controller, App Launcher tab, and saved reports. Grants no Traction Rec permissions - users keep their existing Registration and Answered Question access.</description>
+    <hasActivationRequired>false</hasActivationRequired>
+
+    <!-- Apex controller behind the component -->
+    <classAccesses>
+        <apexClass>RegistrationReportController</apexClass>
+        <enabled>true</enabled>
+    </classAccesses>
+
+    <!-- Saved reports object: users create, edit and delete their own -->
+    <objectPermissions>
+        <object>Question_Report_Config__c</object>
+        <allowCreate>true</allowCreate>
+        <allowRead>true</allowRead>
+        <allowEdit>true</allowEdit>
+        <allowDelete>true</allowDelete>
+        <viewAllRecords>false</viewAllRecords>
+        <modifyAllRecords>false</modifyAllRecords>
+    </objectPermissions>
+
+    <fieldPermissions>
+        <field>Question_Report_Config__c.Config_JSON__c</field>
+        <readable>true</readable>
+        <editable>true</editable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <field>Question_Report_Config__c.Description__c</field>
+        <readable>true</readable>
+        <editable>true</editable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <field>Question_Report_Config__c.Folder_Name__c</field>
+        <readable>true</readable>
+        <editable>true</editable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <field>Question_Report_Config__c.Last_Run_Date__c</field>
+        <readable>true</readable>
+        <editable>true</editable>
+    </fieldPermissions>
+
+    <!-- App Launcher tab -->
+    <tabSettings>
+        <tab>Registration_Report_Builder</tab>
+        <visibility>Visible</visibility>
+    </tabSettings>
+</PermissionSet>
