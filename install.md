@@ -173,4 +173,4 @@ cannot widen anyone's access to program data.
 
 1. Click the App Launcher (9-dot grid, top left of Salesforce)
 2. Search for **Registration Report Builder** and click it
-3. Type a program name you know exists and click **Run Report**
+3. Type a course session you know exists and click **Run Report**
