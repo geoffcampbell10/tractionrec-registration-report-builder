@@ -2,6 +2,7 @@ import { LightningElement } from 'lwc';
 import { loadScript } from 'lightning/platformResourceLoader';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import SheetJS from '@salesforce/resourceUrl/SheetJS';
+import JsPDF from '@salesforce/resourceUrl/JsPDF';
 import getRegistrationStatuses from '@salesforce/apex/RegistrationReportController.getRegistrationStatuses';
 import getAvailableFields from '@salesforce/apex/RegistrationReportController.getAvailableFields';
 import runReport from '@salesforce/apex/RegistrationReportController.runReport';
@@ -9,6 +10,13 @@ import getSavedConfigs from '@salesforce/apex/RegistrationReportController.getSa
 import loadConfig from '@salesforce/apex/RegistrationReportController.loadConfig';
 import saveConfig from '@salesforce/apex/RegistrationReportController.saveConfig';
 import deleteConfig from '@salesforce/apex/RegistrationReportController.deleteConfig';
+
+// Example text for the filter boxes. Each org can set these in
+// Setup > Custom Labels to match how they actually name their programs.
+import PROGRAM_PLACEHOLDER from '@salesforce/label/c.RRB_Program_Name_Placeholder';
+import COURSE_PLACEHOLDER from '@salesforce/label/c.RRB_Course_Name_Placeholder';
+import SESSION_PLACEHOLDER from '@salesforce/label/c.RRB_Course_Session_Placeholder';
+import FOLDER_PLACEHOLDER from '@salesforce/label/c.RRB_Folder_Name_Placeholder';
 
 const FIXED_COLUMN_DEFS = [
     { label: 'Name',                fieldName: 'contactName',        type: 'text',       initialWidth: 180, sortable: true  },
@@ -23,6 +31,15 @@ const FIXED_COLUMN_DEFS = [
 ];
 
 export default class RegistrationReportBuilder extends LightningElement {
+
+    label = {
+        programPlaceholder: PROGRAM_PLACEHOLDER,
+        coursePlaceholder:  COURSE_PLACEHOLDER,
+        sessionPlaceholder: SESSION_PLACEHOLDER,
+        folderPlaceholder:  FOLDER_PLACEHOLDER,
+    };
+
+    pdfLoaded = false;
 
     // ── Filter values ──────────────────────────────────────────────────────────
     courseNameFilter    = '';
@@ -92,6 +109,9 @@ export default class RegistrationReportBuilder extends LightningElement {
         loadScript(this, SheetJS)
             .then(() => { this.xlsxLoaded = true; })
             .catch(() => { /* CSV still works */ });
+        loadScript(this, JsPDF)
+            .then(() => { this.pdfLoaded = true; })
+            .catch(() => { /* CSV and Excel still work */ });
     }
 
     async loadInitialData() {
@@ -520,74 +540,75 @@ export default class RegistrationReportBuilder extends LightningElement {
 
     handleExportPdf() {
         if (!this.tableData?.length) return;
+        if (!this.pdfLoaded) {
+            this.errorMessage = 'The PDF library is still loading. Try again in a moment.';
+            return;
+        }
 
-        // Exclude the URL link column - not meaningful in print
+        // The registration link column is not meaningful on paper
         const printCols = this.tableColumns.filter(c => c.type !== 'url');
 
-        const now = new Date().toLocaleDateString('en-US', {
+        const now = new Date().toLocaleString('en-US', {
             year: 'numeric', month: 'long', day: 'numeric',
             hour: '2-digit', minute: '2-digit'
         });
 
-        const headers = printCols.map(c =>
-            `<th>${this.escHtml(c.label)}</th>`
-        ).join('');
-
-        const rows = this.tableData.map(row => {
-            const cells = printCols.map(c =>
-                `<td>${this.escHtml(this.formatPdfCell(c, row[c.fieldName]))}</td>`
-            ).join('');
-            return `<tr>${cells}</tr>`;
-        }).join('');
-
-        // eslint-disable-next-line no-useless-escape
-        const html = `<!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="UTF-8">
-<title>Answered Questions Report</title>
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:Arial,sans-serif;font-size:8.5pt;color:#1e293b;padding:1cm}
-  .rpt-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:0.45cm;padding-bottom:0.3cm;border-bottom:2px solid #1e293b}
-  .rpt-title{font-size:13pt;font-weight:700;color:#0f172a;margin-bottom:0.1cm}
-  .rpt-meta{font-size:7.5pt;color:#64748b}
-  .rpt-summary{font-size:7.5pt;color:#475569;font-style:italic;margin-bottom:0.08cm}
-  .rpt-count{font-size:8pt;font-weight:600;color:#1e293b;margin-bottom:0.35cm}
-  table{width:100%;border-collapse:collapse;font-size:8pt}
-  thead th{background:#0f172a;color:#fff;padding:5px 6px;text-align:left;font-size:7.5pt;font-weight:600;white-space:nowrap;border:1px solid #0f172a}
-  tbody tr:nth-child(even){background:#f8fafc}
-  tbody td{padding:4px 6px;border:1px solid #e2e8f0;vertical-align:top;word-break:break-word;max-width:200px}
-  .print-hint{background:#eff6ff;border:1px solid #bfdbfe;color:#1d4ed8;padding:6px 10px;border-radius:4px;font-size:8pt;margin-top:0.35cm;text-align:center}
-  .footer{margin-top:0.4cm;font-size:7pt;color:#94a3b8;text-align:right}
-  @page{margin:1cm;size:landscape}
-  @media print{.print-hint{display:none}body{padding:0}}
-</style>
-</head>
-<body>
-<div class="rpt-header">
-  <div>
-    <div class="rpt-title">Answered Questions Report</div>
-    <div class="rpt-summary">${this.escHtml(this.filterSummary)}</div>
-  </div>
-  <div class="rpt-meta">Generated ${now}</div>
-</div>
-<div class="rpt-count">${this.totalRows} registration(s)</div>
-<table>
-  <thead><tr>${headers}</tr></thead>
-  <tbody>${rows}</tbody>
-</table>
-<div class="print-hint">To save as PDF: press <strong>Ctrl+P</strong> (Windows) or <strong>Cmd+P</strong> (Mac), then choose <em>Save as PDF</em>.</div>
-<div class="footer">Answered Questions Report &mdash; ${now}</div>
-</body></html>`;
+        const head = [printCols.map(c => c.label)];
+        const body = this.tableData.map(row =>
+            printCols.map(c => this.formatPdfCell(c, row[c.fieldName]))
+        );
 
         try {
-            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
-            const url  = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            // eslint-disable-next-line @lwc/lwc/no-async-operation
-            setTimeout(() => URL.revokeObjectURL(url), 120000);
+            // eslint-disable-next-line no-undef
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+
+            doc.autoTable({
+                head,
+                body,
+                startY: 74,
+                margin: { top: 74, right: 28, bottom: 34, left: 28 },
+                styles: {
+                    font: 'helvetica', fontSize: 8, cellPadding: 4,
+                    overflow: 'linebreak', valign: 'top', lineColor: [226, 232, 240], lineWidth: 0.5
+                },
+                headStyles: { fillColor: [15, 23, 42], textColor: [255, 255, 255], fontSize: 8, fontStyle: 'bold' },
+                alternateRowStyles: { fillColor: [248, 250, 252] },
+                didDrawPage: (data) => {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(14);
+                    doc.setTextColor(15, 23, 42);
+                    doc.text('Registration Report', data.settings.margin.left, 36);
+
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(8);
+                    doc.setTextColor(100, 116, 139);
+                    if (this.filterSummary) {
+                        doc.text(doc.splitTextToSize(this.filterSummary, 620), data.settings.margin.left, 50);
+                    }
+                    doc.text(`${this.totalRows} registration(s)`, data.settings.margin.left, 62);
+
+                    const w = doc.internal.pageSize.getWidth();
+                    const h = doc.internal.pageSize.getHeight();
+                    doc.setFontSize(7);
+                    doc.setTextColor(148, 163, 184);
+                    doc.text(now, w - data.settings.margin.right, 36, { align: 'right' });
+                    doc.text(
+                        'Page ' + doc.internal.getNumberOfPages(),
+                        w - data.settings.margin.right, h - 18, { align: 'right' }
+                    );
+                }
+            });
+
+            // A data: URI on a download anchor is the only file-save route
+            // Lightning Web Security allows; blob URLs are rejected.
+            this.downloadDataUri(
+                doc.output('datauristring'),
+                `RegistrationReport_${this.isoDate()}.pdf`
+            );
         } catch (e) {
-            this.errorMessage = 'Could not open PDF preview: ' + e.message;
+            this.errorMessage = 'Could not build the PDF: ' + e.message +
+                '. CSV and Excel exports are unaffected.';
         }
     }
 
@@ -770,8 +791,12 @@ export default class RegistrationReportBuilder extends LightningElement {
     }
 
     downloadFile(content, filename, mimeType) {
+        this.downloadDataUri(`data:${mimeType},` + encodeURIComponent(content), filename);
+    }
+
+    downloadDataUri(uri, filename) {
         const a = document.createElement('a');
-        a.href  = `data:${mimeType},` + encodeURIComponent(content);
+        a.href = uri;
         a.setAttribute('download', filename);
         document.body.appendChild(a);
         a.click();

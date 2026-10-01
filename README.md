@@ -30,8 +30,8 @@ out-of-the-box reports.
 - **Save / load report configurations** — filters and column selections are saved per
   user (organized into folders) as `Question_Report_Config__c` records, so a report can
   be re-run later without re-entering criteria.
-- **Export** to CSV, Excel (via bundled SheetJS static resource), or a print-friendly
-  PDF view.
+- **Export** to CSV, Excel (via the bundled SheetJS static resource), or a real PDF
+  roster (via the bundled jsPDF + AutoTable static resource).
 - **Guardrails** on large result sets — pre-flight `COUNT()` queries warn the user to
   narrow filters before pulling back more than ~2,000 registrations or ~20,000 answered
   questions, avoiding governor-limit failures.
@@ -54,11 +54,29 @@ registration-report-builder/main/default/
 │   └── RegistrationReportControllerTest.cls   Apex test class
 ├── lwc/registrationReportBuilder/             The report builder LWC (UI, export, state)
 ├── objects/Question_Report_Config__c/         Custom object for saved report configs
+├── labels/CustomLabels.labels-meta.xml        Editable filter example text
 ├── permissionsets/                            Registration Report Builder User perm set
 ├── flexipages/Registration_Report_Builder.flexipage-meta.xml
 ├── tabs/Registration_Report_Builder.tab-meta.xml
-└── staticresources/SheetJS.js                 Bundled SheetJS library for Excel export
+└── staticresources/
+    ├── SheetJS.js                             SheetJS, for the Excel export
+    └── JsPDF.js                               jsPDF + AutoTable, for the PDF export
 ```
+
+## Customizing the Filter Examples
+
+The greyed-out example text in the Program Name, Course Name and Course Session
+filters is driven by Custom Labels, because naming conventions differ from org to
+org. Change them in **Setup → Custom Labels** — no code change, no redeploy:
+
+| Label | Default |
+|---|---|
+| `RRB_Program_Name_Placeholder` | `e.g. Aquatics` |
+| `RRB_Course_Name_Placeholder` | `e.g. Swim Lessons` |
+| `RRB_Course_Session_Placeholder` | `e.g. Spring 2025` |
+| `RRB_Folder_Name_Placeholder` | `e.g. Aquatics, Summer 2025` |
+
+Note that redeploying the package resets these to the defaults above.
 
 ## Deployment
 

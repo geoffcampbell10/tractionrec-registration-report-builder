@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<StaticResource xmlns="http://soap.sforce.com/2006/04/metadata">
+    <cacheControl>Public</cacheControl>
+    <contentType>application/javascript</contentType>
+    <description>jsPDF 2.5.1 and jsPDF-AutoTable 3.8.2 (both MIT). Used to build the PDF roster export.</description>
+</StaticResource>
