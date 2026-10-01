@@ -540,6 +540,7 @@ export default class RegistrationReportBuilder extends LightningElement {
 
     handleExportPdf() {
         if (!this.tableData?.length) return;
+        this.errorMessage = '';
         if (!this.pdfLoaded) {
             this.errorMessage = 'The PDF library is still loading. Try again in a moment.';
             return;
@@ -561,13 +562,28 @@ export default class RegistrationReportBuilder extends LightningElement {
         try {
             // eslint-disable-next-line no-undef
             const { jsPDF } = window.jspdf;
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'letter' });
+
+            // Give every column at least a readable width. On a fixed letter page
+            // a wide report forces autoTable to split the table across pages
+            // horizontally, and past roughly 45 columns that recursion overflows
+            // the call stack. Widening the page instead keeps it to one pass.
+            // Narrow reports still come out on plain letter landscape.
+            const LETTER_WIDTH = 792;
+            const MARGIN       = 28;
+            const MIN_COL      = 60;
+            const pageWidth    = Math.max(LETTER_WIDTH, printCols.length * MIN_COL + MARGIN * 2);
+
+            const doc = new jsPDF({
+                orientation: 'landscape',
+                unit: 'pt',
+                format: [pageWidth, 612]
+            });
 
             doc.autoTable({
                 head,
                 body,
                 startY: 74,
-                margin: { top: 74, right: 28, bottom: 34, left: 28 },
+                margin: { top: 74, right: MARGIN, bottom: 34, left: MARGIN },
                 styles: {
                     font: 'helvetica', fontSize: 8, cellPadding: 4,
                     overflow: 'linebreak', valign: 'top', lineColor: [226, 232, 240], lineWidth: 0.5
@@ -584,7 +600,11 @@ export default class RegistrationReportBuilder extends LightningElement {
                     doc.setFontSize(8);
                     doc.setTextColor(100, 116, 139);
                     if (this.filterSummary) {
-                        doc.text(doc.splitTextToSize(this.filterSummary, 620), data.settings.margin.left, 50);
+                        const summaryWidth = Math.min(pageWidth - 260, 900);
+                        doc.text(
+                            doc.splitTextToSize(this.filterSummary, summaryWidth),
+                            data.settings.margin.left, 50
+                        );
                     }
                     doc.text(`${this.totalRows} registration(s)`, data.settings.margin.left, 62);
 
@@ -603,13 +623,36 @@ export default class RegistrationReportBuilder extends LightningElement {
             // A data: URI on a download anchor is the only file-save route
             // Lightning Web Security allows; blob URLs are rejected.
             this.downloadDataUri(
-                doc.output('datauristring'),
+                this.pdfDataUri(doc),
                 `RegistrationReport_${this.isoDate()}.pdf`
             );
         } catch (e) {
-            this.errorMessage = 'Could not build the PDF: ' + e.message +
-                '. CSV and Excel exports are unaffected.';
+            // Salesforce runs this component inside Lightning Web Security, which
+            // leaves far less call stack than a normal page. Very wide reports
+            // exhaust it inside the PDF library, around 40 columns in practice.
+            if (/call stack/i.test(e.message)) {
+                this.errorMessage =
+                    `This report is too wide for the PDF export (${printCols.length} columns). ` +
+                    'Turn off some Question Groups or Additional Columns and try again, ' +
+                    'or use the Excel export, which has no column limit.';
+            } else {
+                this.errorMessage = 'Could not build the PDF: ' + e.message +
+                    '. CSV and Excel exports are unaffected.';
+            }
         }
+    }
+
+    // jsPDF's own output('datauristring') base64-encodes the whole document in one
+    // pass, which overflows the call stack on larger reports ("Maximum call stack
+    // size exceeded"). Encode the bytes in chunks instead.
+    pdfDataUri(doc) {
+        const bytes = new Uint8Array(doc.output('arraybuffer'));
+        const CHUNK = 0x8000;
+        let binary = '';
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+            binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+        }
+        return 'data:application/pdf;base64,' + btoa(binary);
     }
 
     formatPdfCell(col, val) {
