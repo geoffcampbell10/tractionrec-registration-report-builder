@@ -1,37 +1,5 @@
 # Changelog
 
-## v1.1.1 — 2026-10-01
-
-### Fixed
-
-- **PDF export failed on wide reports with "Maximum call stack size exceeded."**
-  Reported from production with 22 registrations, so this was never about how
-  many rows the report returned.
-
-  When a table is too wide for the page, the PDF library splits it across pages
-  horizontally, and that splitting recurses. The page count climbed
-  superlinearly — 12 pages at 39 columns, 25 pages at 42 — until the recursion
-  exhausted the call stack. Salesforce runs the component inside Lightning Web
-  Security, which leaves considerably less stack than an ordinary page, so it
-  gave out sooner than it otherwise would.
-
-  The page is now sized to fit the columns rather than splitting, with a 60pt
-  floor per column. Verified at **99 columns and 36 registrations**: a valid
-  6-page PDF. Reports narrow enough to fit still come out on plain letter
-  landscape exactly as before.
-
-- **Error banners no longer persist between exports.** A failed export left its
-  message on screen, so a later successful export still appeared to have failed.
-
-### Changed
-
-- If the PDF ever does hit a platform limit, the component now explains it and
-  points to the Excel export, instead of surfacing a raw JavaScript error.
-- PDF bytes are base64-encoded in chunks rather than in one pass, which removes
-  a separate stack-overflow risk on very large documents.
-
----
-
 ## v1.1.0 — 2026-10-01
 
 Reported by the DC JCC (Shoshana Strom and Courtney Brown) after their first run
@@ -49,6 +17,23 @@ with the tool.
   The generated PDF is landscape, repeats the report title, filter summary and
   registration count on every page, stripes alternate rows, and numbers the
   pages.
+
+- **Wide reports no longer fail with "Maximum call stack size exceeded."** When
+  a table is too wide for the page, the PDF library splits it across pages
+  horizontally, and that splitting recurses. The page count climbed
+  superlinearly — 12 pages at 39 columns, 25 pages at 42 — until the recursion
+  exhausted the call stack. Salesforce runs the component inside Lightning Web
+  Security, which leaves considerably less stack than an ordinary page, so it
+  gave out sooner than it otherwise would.
+
+  The page is now sized to fit the columns instead of splitting, with a 60pt
+  floor per column. Verified at **99 columns and 36 registrations**: a valid
+  6-page PDF. Reports narrow enough to fit still come out on plain letter
+  landscape. This is about column count, not row count — 200 rows across 30
+  columns was never a problem.
+
+- **Error banners no longer persist between exports.** A failed export left its
+  message on screen, so a later successful export still appeared to have failed.
 
 ### Added
 
@@ -70,6 +55,10 @@ with the tool.
 
 ### Changed
 
+- If the PDF ever does hit a platform limit, the component explains it and
+  points to the Excel export, instead of surfacing a raw JavaScript error.
+- PDF bytes are base64-encoded in chunks rather than in one pass, which removes
+  a separate stack-overflow risk on very large documents.
 - The Course Name default example is now `e.g. Swim Lessons` instead of
   `e.g. Judaism`.
 - The printed report is titled "Registration Report" rather than the old
