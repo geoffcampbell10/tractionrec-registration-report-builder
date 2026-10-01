@@ -7,70 +7,42 @@ with the tool.
 
 ### Fixed
 
-- **PDF export no longer fails with "Could not open PDF preview: Unsupported
-  MIME type."** Lightning Web Security blocks `URL.createObjectURL()` for
-  `text/html`, which is what the old export relied on, so the button failed in
-  every org. PDF / Print now builds a real PDF with jsPDF and downloads it the
-  same way the CSV export already did. One click, a genuine `.pdf` file, no
-  print dialog and no popup blocker in the way.
-
-  The generated PDF is landscape, repeats the report title, filter summary and
-  registration count on every page, stripes alternate rows, and numbers the
-  pages.
-
-- **Wide reports no longer fail with "Maximum call stack size exceeded."** When
-  a table is too wide for the page, the PDF library splits it across pages
-  horizontally, and that splitting recurses. The page count climbed
-  superlinearly — 12 pages at 39 columns, 25 pages at 42 — until the recursion
-  exhausted the call stack. Salesforce runs the component inside Lightning Web
-  Security, which leaves considerably less stack than an ordinary page, so it
-  gave out sooner than it otherwise would.
-
-  The page is now sized to fit the columns instead of splitting, with a 60pt
-  floor per column. Verified at **99 columns and 36 registrations**: a valid
-  6-page PDF. Reports narrow enough to fit still come out on plain letter
-  landscape. This is about column count, not row count — 200 rows across 30
-  columns was never a problem.
-
-- **Error banners no longer persist between exports.** A failed export left its
-  message on screen, so a later successful export still appeared to have failed.
+- **PDF export works.** It previously failed in every org with "Could not open
+  PDF preview: Unsupported MIME type". Now builds a real PDF that downloads in
+  one click, like CSV and Excel.
+- **Wide reports no longer crash** with "Maximum call stack size exceeded". This
+  was column count, not row count. Tested at 99 columns.
+- **Paragraph-length question text no longer breaks the layout.** Long consent
+  questions produced a header tall enough to fill the page. Headers are trimmed.
+- Error messages no longer linger after a successful export.
 
 ### Added
 
-- **Custom Labels for the filter example text.** The greyed-out examples in
-  Program Name, Course Name and Course Session were hardcoded, and they assumed
-  naming conventions that do not match every org. They are now Custom Labels, so
-  each org sets its own wording in **Setup → Custom Labels** without touching
-  code:
+- **Custom Labels for the filter example text**, so each org sets its own wording
+  in **Setup → Custom Labels** without touching code:
 
-  | Label | Default |
-  |---|---|
-  | `RRB_Program_Name_Placeholder` | `e.g. Aquatics` |
-  | `RRB_Course_Name_Placeholder` | `e.g. Swim Lessons` |
-  | `RRB_Course_Session_Placeholder` | `e.g. Spring 2025` |
-  | `RRB_Folder_Name_Placeholder` | `e.g. Aquatics, Summer 2025` |
+  | Label | Shows up in | Default |
+  |---|---|---|
+  | `RRB_Program_Name_Placeholder` | Program Name filter | `e.g. Aquatics` |
+  | `RRB_Course_Name_Placeholder` | Course Name filter | `e.g. Swim Lessons` |
+  | `RRB_Course_Session_Placeholder` | Course Session filter | `e.g. Spring 2025` |
+  | `RRB_Folder_Name_Placeholder` | New folder name when saving | `e.g. Aquatics, Summer 2025` |
 
-- **`JsPDF` static resource** — jsPDF 2.5.1 and jsPDF-AutoTable 3.8.2, both MIT
-  licensed. Adds roughly 400KB to the package.
+- **`JsPDF` static resource** — jsPDF 2.5.1 and AutoTable 3.8.2, both MIT. Adds
+  about 400KB.
 
 ### Changed
 
-- If the PDF ever does hit a platform limit, the component explains it and
-  points to the Excel export, instead of surfacing a raw JavaScript error.
-- PDF bytes are base64-encoded in chunks rather than in one pass, which removes
-  a separate stack-overflow risk on very large documents.
-- The Course Name default example is now `e.g. Swim Lessons` instead of
-  `e.g. Judaism`.
-- The printed report is titled "Registration Report" rather than the old
-  "Answered Questions Report", and the file is named
+- The printed report is titled "Registration Report" and saves as
   `RegistrationReport_<date>.pdf`.
+- The Course Name default example is now `e.g. Swim Lessons`.
 
 ### Upgrading
 
-Redeploy over your existing install. Nothing needs to be uninstalled first, and
-saved reports are unaffected. If you already set your own Custom Label values,
-redeploying **will** overwrite them back to the defaults above, so note them
-down first.
+Redeploy over your existing install. Nothing to uninstall, saved reports are
+untouched. Hard refresh afterwards (Ctrl+Shift+R / Cmd+Shift+R) or Salesforce
+serves the cached old version. Redeploying resets Custom Label values to the
+defaults above.
 
 ---
 
