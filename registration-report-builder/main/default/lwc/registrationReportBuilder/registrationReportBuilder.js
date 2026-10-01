@@ -554,7 +554,7 @@ export default class RegistrationReportBuilder extends LightningElement {
             hour: '2-digit', minute: '2-digit'
         });
 
-        const head = [printCols.map(c => c.label)];
+        const head = [printCols.map(c => this.pdfHeaderLabel(c.label))];
         const body = this.tableData.map(row =>
             printCols.map(c => this.formatPdfCell(c, row[c.fieldName]))
         );
@@ -570,7 +570,7 @@ export default class RegistrationReportBuilder extends LightningElement {
             // Narrow reports still come out on plain letter landscape.
             const LETTER_WIDTH = 792;
             const MARGIN       = 28;
-            const MIN_COL      = 60;
+            const MIN_COL      = 88;
             const pageWidth    = Math.max(LETTER_WIDTH, printCols.length * MIN_COL + MARGIN * 2);
 
             const doc = new jsPDF({
@@ -653,6 +653,14 @@ export default class RegistrationReportBuilder extends LightningElement {
             binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
         }
         return 'data:application/pdf;base64,' + btoa(binary);
+    }
+
+    // Question text is often a whole sentence, and consent questions can run to a
+    // paragraph. Left intact it wraps into a header cell tall enough to push the
+    // data off the page, so keep enough to identify the column and drop the rest.
+    pdfHeaderLabel(label) {
+        const text = String(label == null ? '' : label).replace(/\s+/g, ' ').trim();
+        return text.length > 58 ? text.slice(0, 55).trimEnd() + '...' : text;
     }
 
     formatPdfCell(col, val) {

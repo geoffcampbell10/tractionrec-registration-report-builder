@@ -174,3 +174,38 @@ cannot widen anyone's access to program data.
 1. Click the App Launcher (9-dot grid, top left of Salesforce)
 2. Search for **Registration Report Builder** and click it
 3. Type a course session you know exists and click **Run Report**
+
+Upgrading rather than installing fresh? Do a hard refresh first — **Ctrl+Shift+R**
+(Windows) or **Cmd+Shift+R** (Mac). Salesforce caches Lightning components in the
+browser, so without it you can sit on the old version even though the org has the
+new one.
+
+---
+
+## Optional — set your own filter examples
+
+The greyed-out example text in the **Program Name**, **Course Name** and
+**Course Session** boxes is just a hint, and the defaults assume naming
+conventions that will not match every org. Course sessions in particular get
+named very differently from one J to the next.
+
+Those hints are Custom Labels, so you can set your own wording without touching
+code or redeploying:
+
+1. Setup → **Custom Labels**
+2. Click **Edit** next to the label you want to change
+3. Replace the **Value** with wording your staff will recognize, then **Save**
+
+| Label | Shows up in | Default |
+|-------|-------------|---------|
+| `RRB_Program_Name_Placeholder` | Program Name filter | `e.g. Aquatics` |
+| `RRB_Course_Name_Placeholder` | Course Name filter | `e.g. Swim Lessons` |
+| `RRB_Course_Session_Placeholder` | Course Session filter | `e.g. Spring 2025` |
+| `RRB_Folder_Name_Placeholder` | New folder name, when saving a report | `e.g. Aquatics, Summer 2025` |
+
+For example, if your sessions are named like `Winter 2025 | ARC Level 2`, set
+`RRB_Course_Session_Placeholder` to `e.g. Winter 2025 | ARC Level 2` so staff
+immediately recognize the format.
+
+Changes show up on a page refresh. Note that **redeploying the package resets
+these to the defaults above**, so make a note of your values before upgrading.
