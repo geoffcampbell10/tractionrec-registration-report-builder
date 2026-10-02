@@ -53,15 +53,19 @@ registration-report-builder/main/default/
 │   ├── RegistrationReportController.cls       Apex controller (queries, saved-config CRUD)
 │   └── RegistrationReportControllerTest.cls   Apex test class
 ├── lwc/registrationReportBuilder/             The report builder LWC (UI, export, state)
-├── objects/Question_Report_Config__c/         Custom object for saved report configs
-├── objects/Registration_Report_Setting__mdt/   Configurable filter example text
+├── objects/
+│   ├── Question_Report_Config__c/             Custom object for saved report configs
+│   └── Registration_Report_Setting__mdt/      Configurable filter example text
 ├── permissionsets/                            Registration Report Builder User perm set
-├── flexipages/Registration_Report_Builder.flexipage-meta.xml
 ├── tabs/Registration_Report_Builder.tab-meta.xml
 └── staticresources/
     ├── SheetJS.js                             SheetJS, for the Excel export
     └── JsPDF.js                               jsPDF + AutoTable, for the PDF export
 ```
+
+The component is reached through its own App Launcher tab, so no Lightning page is
+needed. A `flexipages/` file remains in the repo from an earlier approach but is
+not part of the package and is not deployed.
 
 ## Customizing the Filter Examples
 

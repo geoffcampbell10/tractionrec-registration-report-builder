@@ -95,10 +95,13 @@ sf org login web --instance-url https://login.salesforce.com --alias my-org
 Paste each one and press Enter. Wait for `Status: Succeeded` before running the next.
 Replace `my-org` with the nickname from Step 4.
 
-1 of 6 — custom object
+1 of 6 — objects
+
+Deploys the saved-reports object and the settings metadata type. Both have to be
+in place before the Apex will compile.
 
 ```
-sf project deploy start --source-dir "registration-report-builder/main/default/objects/Question_Report_Config__c" --target-org my-org
+sf project deploy start --source-dir registration-report-builder/main/default/objects --target-org my-org
 ```
 
 2 of 6 — Apex classes
