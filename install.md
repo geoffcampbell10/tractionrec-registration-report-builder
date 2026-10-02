@@ -189,23 +189,27 @@ The greyed-out example text in the **Program Name**, **Course Name** and
 conventions that will not match every org. Course sessions in particular get
 named very differently from one J to the next.
 
-Those hints are Custom Labels, so you can set your own wording without touching
-code or redeploying:
+To set your own wording, without touching code:
 
-1. Setup → **Custom Labels**
-2. Click **Edit** next to the label you want to change
-3. Replace the **Value** with wording your staff will recognize, then **Save**
+1. Setup → **Custom Metadata Types**
+2. Click **Manage Records** next to **Registration Report Setting**
+3. Click **New**, give it any label and name (for example `Default`)
+4. Fill in the fields you want to change, leave the rest blank, and **Save**
 
-| Label | Shows up in | Default |
+| Field | Shows up in | Default |
 |-------|-------------|---------|
-| `RRB_Program_Name_Placeholder` | Program Name filter | `e.g. Aquatics` |
-| `RRB_Course_Name_Placeholder` | Course Name filter | `e.g. Swim Lessons` |
-| `RRB_Course_Session_Placeholder` | Course Session filter | `e.g. Spring 2025` |
-| `RRB_Folder_Name_Placeholder` | New folder name, when saving a report | `e.g. Aquatics, Summer 2025` |
+| Program Name Placeholder | Program Name filter | `e.g. Aquatics` |
+| Course Name Placeholder | Course Name filter | `e.g. Swim Lessons` |
+| Course Session Placeholder | Course Session filter | `e.g. Spring 2025` |
+| Folder Name Placeholder | New folder name, when saving a report | `e.g. Aquatics, Summer 2025` |
 
 For example, if your sessions are named like `Winter 2025 | ARC Level 2`, set
-`RRB_Course_Session_Placeholder` to `e.g. Winter 2025 | ARC Level 2` so staff
+Course Session Placeholder to `e.g. Winter 2025 | ARC Level 2` so staff
 immediately recognize the format.
 
-Changes show up on a page refresh. Note that **redeploying the package resets
-these to the defaults above**, so make a note of your values before upgrading.
+Blank fields fall back to the defaults above, and only the first record is read,
+so create one record rather than several.
+
+**Your values survive upgrades.** The package ships the metadata type and its
+fields but deliberately ships no records, so redeploying never overwrites what
+you set.

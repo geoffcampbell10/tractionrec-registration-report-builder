@@ -18,15 +18,20 @@ with the tool.
 
 ### Added
 
-- **Custom Labels for the filter example text**, so each org sets its own wording
-  in **Setup → Custom Labels** without touching code:
+- **Configurable filter example text**, so each org sets its own wording in
+  **Setup → Custom Metadata Types → Registration Report Setting → Manage
+  Records**. Blank fields fall back to the defaults, and only the first record
+  is read.
 
-  | Label | Shows up in | Default |
+  | Field | Shows up in | Default |
   |---|---|---|
-  | `RRB_Program_Name_Placeholder` | Program Name filter | `e.g. Aquatics` |
-  | `RRB_Course_Name_Placeholder` | Course Name filter | `e.g. Swim Lessons` |
-  | `RRB_Course_Session_Placeholder` | Course Session filter | `e.g. Spring 2025` |
-  | `RRB_Folder_Name_Placeholder` | New folder name when saving | `e.g. Aquatics, Summer 2025` |
+  | Program Name Placeholder | Program Name filter | `e.g. Aquatics` |
+  | Course Name Placeholder | Course Name filter | `e.g. Swim Lessons` |
+  | Course Session Placeholder | Course Session filter | `e.g. Spring 2025` |
+  | Folder Name Placeholder | New folder name when saving | `e.g. Aquatics, Summer 2025` |
+
+  The package ships the metadata type and its fields but deliberately ships no
+  records, so **your values survive upgrades**.
 
 - **`JsPDF` static resource** — jsPDF 2.5.1 and AutoTable 3.8.2, both MIT. Adds
   about 400KB.
@@ -41,8 +46,7 @@ with the tool.
 
 Redeploy over your existing install. Nothing to uninstall, saved reports are
 untouched. Hard refresh afterwards (Ctrl+Shift+R / Cmd+Shift+R) or Salesforce
-serves the cached old version. Redeploying resets Custom Label values to the
-defaults above.
+serves the cached old version.
 
 ---
 

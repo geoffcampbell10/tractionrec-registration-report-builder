@@ -54,7 +54,7 @@ registration-report-builder/main/default/
 │   └── RegistrationReportControllerTest.cls   Apex test class
 ├── lwc/registrationReportBuilder/             The report builder LWC (UI, export, state)
 ├── objects/Question_Report_Config__c/         Custom object for saved report configs
-├── labels/CustomLabels.labels-meta.xml        Editable filter example text
+├── objects/Registration_Report_Setting__mdt/   Configurable filter example text
 ├── permissionsets/                            Registration Report Builder User perm set
 ├── flexipages/Registration_Report_Builder.flexipage-meta.xml
 ├── tabs/Registration_Report_Builder.tab-meta.xml
@@ -66,25 +66,28 @@ registration-report-builder/main/default/
 ## Customizing the Filter Examples
 
 The greyed-out example text in the Program Name, Course Name and Course Session
-filters is driven by Custom Labels, because naming conventions differ from org to
-org — course sessions especially.
+filters is configurable, because naming conventions differ from org to org —
+course sessions especially.
 
-To change them: **Setup → Custom Labels → Edit** the label, replace the **Value**,
-and **Save**. No code change, no redeploy. Changes appear on a page refresh.
+Setup → **Custom Metadata Types** → **Registration Report Setting** → **Manage
+Records** → **New**. Name it anything, fill in the fields you want to change, and
+save. Leave a field blank to keep the built-in default.
 
-| Label | Shows up in | Default |
+| Field | Shows up in | Default |
 |-------|-------------|---------|
-| `RRB_Program_Name_Placeholder` | Program Name filter | `e.g. Aquatics` |
-| `RRB_Course_Name_Placeholder` | Course Name filter | `e.g. Swim Lessons` |
-| `RRB_Course_Session_Placeholder` | Course Session filter | `e.g. Spring 2025` |
-| `RRB_Folder_Name_Placeholder` | New folder name, when saving a report | `e.g. Aquatics, Summer 2025` |
+| Program Name Placeholder | Program Name filter | `e.g. Aquatics` |
+| Course Name Placeholder | Course Name filter | `e.g. Swim Lessons` |
+| Course Session Placeholder | Course Session filter | `e.g. Spring 2025` |
+| Folder Name Placeholder | New folder name, when saving a report | `e.g. Aquatics, Summer 2025` |
 
-For example, if sessions are named like `Winter 2025 | ARC Level 2`, setting
-`RRB_Course_Session_Placeholder` to `e.g. Winter 2025 | ARC Level 2` tells staff
-the expected format at a glance.
+For example, if sessions are named like `Winter 2025 | ARC Level 2`, set Course
+Session Placeholder to `e.g. Winter 2025 | ARC Level 2` so staff recognize the
+format at a glance.
 
-Note that redeploying the package resets these to the defaults above, so record
-your values before upgrading.
+**Your values survive upgrades.** The package ships the metadata type and its
+fields but deliberately ships no records, so redeploying never overwrites what
+you configured. Only the first record is read, ordered by developer name, so
+create one.
 
 ## Deployment
 

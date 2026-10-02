@@ -1,5 +1,42 @@
 public with sharing class RegistrationReportController {
 
+    // Example text for the filter boxes when the org has not set its own.
+    private static final Map<String, String> DEFAULT_PLACEHOLDERS = new Map<String, String>{
+        'programName'  => 'e.g. Aquatics',
+        'courseName'   => 'e.g. Swim Lessons',
+        'courseSession'=> 'e.g. Spring 2025',
+        'folderName'   => 'e.g. Aquatics, Summer 2025'
+    };
+
+    /**
+     * Example text shown in the filter boxes. Naming conventions differ from org
+     * to org, so this reads Registration_Report_Setting__mdt when a record exists
+     * and falls back to the defaults above otherwise.
+     *
+     * The package deliberately ships no records of this type, so an upgrade never
+     * overwrites what an admin configured.
+     */
+    @AuraEnabled(cacheable=true)
+    public static Map<String, String> getPlaceholders() {
+        Map<String, String> result = new Map<String, String>(DEFAULT_PLACEHOLDERS);
+
+        List<Registration_Report_Setting__mdt> settings = [
+            SELECT Program_Name_Placeholder__c, Course_Name_Placeholder__c,
+                   Course_Session_Placeholder__c, Folder_Name_Placeholder__c
+            FROM Registration_Report_Setting__mdt
+            ORDER BY DeveloperName
+            LIMIT 1
+        ];
+        if (settings.isEmpty()) return result;
+
+        Registration_Report_Setting__mdt s = settings[0];
+        if (String.isNotBlank(s.Program_Name_Placeholder__c))   result.put('programName',   s.Program_Name_Placeholder__c);
+        if (String.isNotBlank(s.Course_Name_Placeholder__c))    result.put('courseName',    s.Course_Name_Placeholder__c);
+        if (String.isNotBlank(s.Course_Session_Placeholder__c)) result.put('courseSession', s.Course_Session_Placeholder__c);
+        if (String.isNotBlank(s.Folder_Name_Placeholder__c))    result.put('folderName',    s.Folder_Name_Placeholder__c);
+        return result;
+    }
+
     // ─── Metadata Lookups ─────────────────────────────────────────────────────
 
     @AuraEnabled(cacheable=true)

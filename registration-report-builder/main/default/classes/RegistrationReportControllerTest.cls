@@ -82,6 +82,47 @@ private class RegistrationReportControllerTest {
         System.assertNotEquals(null, statuses[0].label);
     }
 
+    // ─── getPlaceholders ──────────────────────────────────────────────────────
+
+    @isTest
+    static void testGetPlaceholders_returnsAllFourKeys() {
+        Map<String, String> p = RegistrationReportController.getPlaceholders();
+        for (String key : new List<String>{ 'programName', 'courseName', 'courseSession', 'folderName' }) {
+            System.assert(p.containsKey(key), 'Missing placeholder key: ' + key);
+            System.assert(String.isNotBlank(p.get(key)), 'Placeholder should never be blank: ' + key);
+        }
+    }
+
+    @isTest
+    static void testGetPlaceholders_fallsBackWhenNoRecordConfigured() {
+        // The package ships no Registration_Report_Setting__mdt records, so an org
+        // that has not configured one must still get usable example text.
+        if ([SELECT COUNT() FROM Registration_Report_Setting__mdt] == 0) {
+            Map<String, String> p = RegistrationReportController.getPlaceholders();
+            System.assertEquals('e.g. Aquatics',    p.get('programName'));
+            System.assertEquals('e.g. Swim Lessons', p.get('courseName'));
+            System.assertEquals('e.g. Spring 2025',  p.get('courseSession'));
+        }
+    }
+
+    @isTest
+    static void testGetPlaceholders_configuredRecordWins() {
+        List<Registration_Report_Setting__mdt> settings = [
+            SELECT Program_Name_Placeholder__c
+            FROM Registration_Report_Setting__mdt
+            ORDER BY DeveloperName
+            LIMIT 1
+        ];
+        Map<String, String> p = RegistrationReportController.getPlaceholders();
+        if (!settings.isEmpty() && String.isNotBlank(settings[0].Program_Name_Placeholder__c)) {
+            System.assertEquals(settings[0].Program_Name_Placeholder__c, p.get('programName'),
+                'A configured record should override the default');
+        } else {
+            System.assertEquals('e.g. Aquatics', p.get('programName'),
+                'With nothing configured the default should win');
+        }
+    }
+
     // â”€â”€â”€ runReport â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @isTest

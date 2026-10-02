@@ -11,12 +11,7 @@ import loadConfig from '@salesforce/apex/RegistrationReportController.loadConfig
 import saveConfig from '@salesforce/apex/RegistrationReportController.saveConfig';
 import deleteConfig from '@salesforce/apex/RegistrationReportController.deleteConfig';
 
-// Example text for the filter boxes. Each org can set these in
-// Setup > Custom Labels to match how they actually name their programs.
-import PROGRAM_PLACEHOLDER from '@salesforce/label/c.RRB_Program_Name_Placeholder';
-import COURSE_PLACEHOLDER from '@salesforce/label/c.RRB_Course_Name_Placeholder';
-import SESSION_PLACEHOLDER from '@salesforce/label/c.RRB_Course_Session_Placeholder';
-import FOLDER_PLACEHOLDER from '@salesforce/label/c.RRB_Folder_Name_Placeholder';
+import getPlaceholders from '@salesforce/apex/RegistrationReportController.getPlaceholders';
 
 const FIXED_COLUMN_DEFS = [
     { label: 'Name',                fieldName: 'contactName',        type: 'text',       initialWidth: 180, sortable: true  },
@@ -32,11 +27,14 @@ const FIXED_COLUMN_DEFS = [
 
 export default class RegistrationReportBuilder extends LightningElement {
 
+    // Filter example text, overridable per org via Registration_Report_Setting__mdt.
+    // Seeded with the same defaults the Apex side falls back to, so the inputs are
+    // never blank while the call is in flight.
     label = {
-        programPlaceholder: PROGRAM_PLACEHOLDER,
-        coursePlaceholder:  COURSE_PLACEHOLDER,
-        sessionPlaceholder: SESSION_PLACEHOLDER,
-        folderPlaceholder:  FOLDER_PLACEHOLDER,
+        programPlaceholder: 'e.g. Aquatics',
+        coursePlaceholder:  'e.g. Swim Lessons',
+        sessionPlaceholder: 'e.g. Spring 2025',
+        folderPlaceholder:  'e.g. Aquatics, Summer 2025',
     };
 
     pdfLoaded = false;
@@ -118,15 +116,24 @@ export default class RegistrationReportBuilder extends LightningElement {
         this.isLoading = true;
         this.errorMessage = '';
         try {
-            const [statuses, configs, fields] = await Promise.all([
+            const [statuses, configs, fields, placeholders] = await Promise.all([
                 getRegistrationStatuses(),
                 getSavedConfigs(),
-                getAvailableFields()
+                getAvailableFields(),
+                getPlaceholders()
             ]);
             this.statusOptions    = statuses.map(s => ({ label: s.label, value: s.value }));
             this.selectedStatuses = this.statusOptions.map(s => s.value);
             this.availableFields  = fields || [];
             this.setSavedConfigOptions(configs);
+            if (placeholders) {
+                this.label = {
+                    programPlaceholder: placeholders.programName   || this.label.programPlaceholder,
+                    coursePlaceholder:  placeholders.courseName    || this.label.coursePlaceholder,
+                    sessionPlaceholder: placeholders.courseSession || this.label.sessionPlaceholder,
+                    folderPlaceholder:  placeholders.folderName    || this.label.folderPlaceholder,
+                };
+            }
         } catch (e) {
             this.errorMessage = this.extractError(e);
         } finally {
