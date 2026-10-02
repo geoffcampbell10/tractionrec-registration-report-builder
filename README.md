@@ -74,11 +74,10 @@ filters is configurable, because naming conventions differ from org to org —
 course sessions especially.
 
 Setup → **Custom Metadata Types** → **Registration Report Setting** → **Manage
-Records** → **New**.
+Records** → **Edit** the **Default** record that ships with the package.
 
-Put `Default` in **Label** (the Name fills in automatically) — those two only
-identify the record and are never shown in the UI. The hints themselves go in the
-**Filter Example Text** section. Leave a field blank to keep the built-in default.
+Fill in the **Filter Example Text** section. Each field shows its built-in default as
+help text, and a blank field keeps that default.
 
 | Field | Shows up in | Default |
 |-------|-------------|---------|

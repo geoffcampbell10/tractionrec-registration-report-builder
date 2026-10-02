@@ -196,12 +196,13 @@ To set your own wording, without touching code:
 
 1. Setup → **Custom Metadata Types**
 2. Click **Manage Records** next to **Registration Report Setting**
-3. Click **New**
-4. For **Label** type `Default` — the **Registration Report Setting Name** fills in
-   on its own. These two only name the record; they do not appear anywhere in the UI
-5. Under **Filter Example Text**, fill in the hints you want to change and leave the
+3. Click **Edit** next to the **Default** record that ships with the package
+4. Under **Filter Example Text**, fill in the hints you want to change and leave the
    rest blank
-6. **Save**
+5. **Save**
+
+Each field shows its built-in default as help text, so you can see what you are
+replacing. A blank field keeps that default.
 
 | Field | Shows up in | Default |
 |-------|-------------|---------|

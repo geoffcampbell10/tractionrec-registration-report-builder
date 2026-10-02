@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
     <fullName>Course_Session_Placeholder__c</fullName>
+    <description>Example text shown in the Course Session filter box.</description>
     <fieldManageability>SubscriberControlled</fieldManageability>
+    <inlineHelpText>Leave blank to use the built-in default: e.g. Spring 2025</inlineHelpText>
     <label>Course Session Placeholder</label>
-    <description>Example text shown in the Course Session filter box. Leave blank to use the built-in default.</description>
     <length>255</length>
     <required>false</required>
     <type>Text</type>
