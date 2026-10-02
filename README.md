@@ -74,8 +74,11 @@ filters is configurable, because naming conventions differ from org to org —
 course sessions especially.
 
 Setup → **Custom Metadata Types** → **Registration Report Setting** → **Manage
-Records** → **New**. Name it anything, fill in the fields you want to change, and
-save. Leave a field blank to keep the built-in default.
+Records** → **New**.
+
+Put `Default` in **Label** (the Name fills in automatically) — those two only
+identify the record and are never shown in the UI. The hints themselves go in the
+**Filter Example Text** section. Leave a field blank to keep the built-in default.
 
 | Field | Shows up in | Default |
 |-------|-------------|---------|
