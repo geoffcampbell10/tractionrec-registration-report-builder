@@ -30,7 +30,7 @@ export default class RegistrationReportBuilder extends LightningElement {
     // Filter example text, overridable per org via Registration_Report_Setting__mdt.
     // Seeded with the same defaults the Apex side falls back to, so the inputs are
     // never blank while the call is in flight.
-    label = {
+    placeholder = {
         programPlaceholder: 'e.g. Aquatics',
         coursePlaceholder:  'e.g. Swim Lessons',
         sessionPlaceholder: 'e.g. Spring 2025',
@@ -127,11 +127,11 @@ export default class RegistrationReportBuilder extends LightningElement {
             this.availableFields  = fields || [];
             this.setSavedConfigOptions(configs);
             if (placeholders) {
-                this.label = {
-                    programPlaceholder: placeholders.programName   || this.label.programPlaceholder,
-                    coursePlaceholder:  placeholders.courseName    || this.label.coursePlaceholder,
-                    sessionPlaceholder: placeholders.courseSession || this.label.sessionPlaceholder,
-                    folderPlaceholder:  placeholders.folderName    || this.label.folderPlaceholder,
+                this.placeholder = {
+                    programPlaceholder: placeholders.programName   || this.placeholder.programPlaceholder,
+                    coursePlaceholder:  placeholders.courseName    || this.placeholder.coursePlaceholder,
+                    sessionPlaceholder: placeholders.courseSession || this.placeholder.sessionPlaceholder,
+                    folderPlaceholder:  placeholders.folderName    || this.placeholder.folderPlaceholder,
                 };
             }
         } catch (e) {

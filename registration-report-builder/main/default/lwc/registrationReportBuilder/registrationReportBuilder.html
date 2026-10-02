@@ -108,19 +108,19 @@
                         <div class="aqr-field">
                             <label class="aqr-label" for="aqr-program">Program Name</label>
                             <input id="aqr-program" type="text" class="aqr-input"
-                                value={programNameFilter} placeholder={label.programPlaceholder}
+                                value={programNameFilter} placeholder={placeholder.programPlaceholder}
                                 oninput={handleProgramNameChange}>
                         </div>
                         <div class="aqr-field">
                             <label class="aqr-label" for="aqr-course">Course Name</label>
                             <input id="aqr-course" type="text" class="aqr-input"
-                                value={courseNameFilter} placeholder={label.coursePlaceholder}
+                                value={courseNameFilter} placeholder={placeholder.coursePlaceholder}
                                 oninput={handleCourseNameChange}>
                         </div>
                         <div class="aqr-field">
                             <label class="aqr-label" for="aqr-session">Course Session</label>
                             <input id="aqr-session" type="text" class="aqr-input"
-                                value={courseSessionFilter} placeholder={label.sessionPlaceholder}
+                                value={courseSessionFilter} placeholder={placeholder.sessionPlaceholder}
                                 oninput={handleCourseSessionChange}>
                         </div>
                         <div class="aqr-date-grid">
@@ -295,7 +295,7 @@
                                     <lightning-input
                                         label="New Folder Name"
                                         required
-                                        placeholder={label.folderPlaceholder}
+                                        placeholder={placeholder.folderPlaceholder}
                                         value={saveConfigFolder}
                                         class="slds-m-top_x-small"
                                         onchange={handleSaveFolderChange}>
