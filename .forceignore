@@ -1,0 +1,6 @@
+# Baltimore JCC community config - retrieved incidentally, never part of this package
+**/sharingSets
+
+# Local scratch / preview files
+option-*-preview.html
+.impeccable/
