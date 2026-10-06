@@ -1,0 +1,23 @@
+{
+  "orgName": "Registration Report Builder Build",
+  "edition": "enterprise",
+  "features": [
+    "EnableSetPasswordInApi",
+    "Communities",
+    "Sites"
+  ],
+  "settings": {
+    "lightningExperienceSettings": {
+      "enableS1DesktopEnabled": true
+    },
+    "mobileSettings": {
+      "enableS1EncryptedStoragePref2": false
+    },
+    "enhancedNotesSettings": {
+      "enableEnhancedNotes": true
+    },
+    "chatterSettings": {
+      "enableChatter": true
+    }
+  }
+}

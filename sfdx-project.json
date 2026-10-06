@@ -1,12 +1,27 @@
 {
   "packageDirectories": [
     {
+      "versionName": "v1.1.0",
+      "versionNumber": "1.1.0.NEXT",
       "path": "registration-report-builder",
-      "default": true
+      "default": true,
+      "package": "Registration Report Builder",
+      "versionDescription": "Pivots Traction Rec answered questions into report columns, one row per registration.",
+      "dependencies": [
+        {
+          "subscriberPackageVersionId": "04tal000007CxgDAAS"
+        },
+        {
+          "subscriberPackageVersionId": "04tal000007CyqnAAC"
+        }
+      ]
     }
   ],
   "name": "registration-report-builder",
   "namespace": "",
   "sfdcLoginUrl": "https://test.salesforce.com",
-  "sourceApiVersion": "66.0"
+  "sourceApiVersion": "66.0",
+  "packageAliases": {
+    "Registration Report Builder": "0Hog50000001ObNCAU"
+  }
 }
