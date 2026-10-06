@@ -274,7 +274,7 @@ private class RegistrationReportControllerTest {
         String configJSON = '{"courseNameFilter":"Judaism","statusFilters":["Active"]}';
 
         Test.startTest();
-        String newId = RegistrationReportController.saveConfig(null, 'My Test Config', 'A description', configJSON, 'Test Folder');
+        String newId = RegistrationReportController.saveConfig(null, 'My Test Config', 'A description', configJSON, 'Test Folder', 'Registrations');
         Test.stopTest();
 
         System.assertNotEquals(null, newId);
@@ -290,9 +290,9 @@ private class RegistrationReportControllerTest {
 
     @isTest
     static void testSaveConfig_update() {
-        String id1 = RegistrationReportController.saveConfig(null, 'Original', null, '{}', 'Test Folder');
+        String id1 = RegistrationReportController.saveConfig(null, 'Original', null, '{}', 'Test Folder', 'Registrations');
         Test.startTest();
-        String id2 = RegistrationReportController.saveConfig(id1, 'Updated', 'desc', '{}', 'Test Folder');
+        String id2 = RegistrationReportController.saveConfig(id1, 'Updated', 'desc', '{}', 'Test Folder', 'Registrations');
         Test.stopTest();
 
         System.assertEquals(id1, id2, 'Update should return same Id');
@@ -304,7 +304,7 @@ private class RegistrationReportControllerTest {
     static void testSaveConfig_blankName_throws() {
         Boolean threw = false;
         try {
-            RegistrationReportController.saveConfig(null, '', null, '{}', 'Test Folder');
+            RegistrationReportController.saveConfig(null, '', null, '{}', 'Test Folder', 'Registrations');
         } catch (AuraHandledException e) {
             threw = true;
         }
@@ -314,7 +314,7 @@ private class RegistrationReportControllerTest {
     @isTest
     static void testLoadConfig() {
         String json = '{"courseNameFilter":"Intro to Judaism"}';
-        String id = RegistrationReportController.saveConfig(null, 'Load Test', null, json, 'Test Folder');
+        String id = RegistrationReportController.saveConfig(null, 'Load Test', null, json, 'Test Folder', 'Registrations');
         Test.startTest();
         String loaded = RegistrationReportController.loadConfig(id);
         Test.stopTest();
@@ -323,17 +323,17 @@ private class RegistrationReportControllerTest {
 
     @isTest
     static void testGetSavedConfigs() {
-        RegistrationReportController.saveConfig(null, 'Config A', null, '{}', 'Test Folder');
-        RegistrationReportController.saveConfig(null, 'Config B', 'desc', '{}', 'Test Folder');
+        RegistrationReportController.saveConfig(null, 'Config A', null, '{}', 'Test Folder', 'Registrations');
+        RegistrationReportController.saveConfig(null, 'Config B', 'desc', '{}', 'Test Folder', 'Registrations');
         Test.startTest();
-        List<RegistrationReportController.ConfigSummary> configs = RegistrationReportController.getSavedConfigs();
+        List<RegistrationReportController.ConfigSummary> configs = RegistrationReportController.getSavedConfigs('Registrations');
         Test.stopTest();
         System.assert(configs.size() >= 2);
     }
 
     @isTest
     static void testDeleteConfig() {
-        String id = RegistrationReportController.saveConfig(null, 'To Delete', null, '{}', 'Test Folder');
+        String id = RegistrationReportController.saveConfig(null, 'To Delete', null, '{}', 'Test Folder', 'Registrations');
         System.assertEquals(1, [SELECT COUNT() FROM Question_Report_Config__c WHERE Id = :id]);
         Test.startTest();
         RegistrationReportController.deleteConfig(id);
@@ -645,9 +645,9 @@ private class RegistrationReportControllerTest {
 
     @isTest
     static void testGetSavedConfigs_verifyFolder() {
-        RegistrationReportController.saveConfig(null, 'Folder Check', null, '{}', 'My Folder');
+        RegistrationReportController.saveConfig(null, 'Folder Check', null, '{}', 'My Folder', 'Registrations');
         Test.startTest();
-        List<RegistrationReportController.ConfigSummary> configs = RegistrationReportController.getSavedConfigs();
+        List<RegistrationReportController.ConfigSummary> configs = RegistrationReportController.getSavedConfigs('Registrations');
         Test.stopTest();
 
         Boolean found = false;
@@ -677,7 +677,7 @@ private class RegistrationReportControllerTest {
         // Covers the existing.isEmpty() throw in saveConfig update path
         Boolean threw = false;
         try {
-            RegistrationReportController.saveConfig('a000000000000000AA', 'Name', null, '{}', 'Folder');
+            RegistrationReportController.saveConfig('a000000000000000AA', 'Name', null, '{}', 'Folder', 'Registrations');
         } catch (AuraHandledException e) {
             threw = true;
         }
@@ -694,6 +694,212 @@ private class RegistrationReportControllerTest {
             threw = true;
         }
         System.assert(threw, 'Deleting a config with bad/unowned ID should throw');
+    }
+
+    // ─── Enrollment Report ────────────────────────────────────────────────────
+
+    private static String getFirstEnrollmentStatus() {
+        Schema.DescribeFieldResult fr =
+            TREX1__Course_Option_Enrollment__c.TREX1__Status__c.getDescribe();
+        for (Schema.PicklistEntry e : fr.getPicklistValues()) {
+            if (e.isActive()) return e.getValue();
+        }
+        return null;
+    }
+
+    /**
+     * Two course options against the one registration from setup, so the fan-out
+     * of a registration's answers across its enrollment rows is exercised.
+     */
+    private static void makeEnrollments() {
+        TREX1__Registration__c reg = [SELECT Id, TREX1__Contact__c FROM TREX1__Registration__c LIMIT 1];
+
+        List<TREX1__Course_Option__c> options = new List<TREX1__Course_Option__c>{
+            new TREX1__Course_Option__c(Name = 'Beginner Swim | Mondays'),
+            new TREX1__Course_Option__c(Name = 'Advanced Swim | Fridays')
+        };
+        insert options;
+
+        insert new List<TREX1__Course_Option_Enrollment__c>{
+            new TREX1__Course_Option_Enrollment__c(
+                TREX1__coe_Registration__c   = reg.Id,
+                TREX1__coe_Course_Option__c  = options[0].Id,
+                TREX1__Contact__c            = reg.TREX1__Contact__c,
+                TREX1__Type__c               = 'Standard Enrollment',
+                TREX1__Status__c             = getFirstEnrollmentStatus(),
+                TREX1__Start_Date__c         = Date.today()
+            ),
+            new TREX1__Course_Option_Enrollment__c(
+                TREX1__coe_Registration__c   = reg.Id,
+                TREX1__coe_Course_Option__c  = options[1].Id,
+                TREX1__Contact__c            = reg.TREX1__Contact__c,
+                TREX1__Type__c               = 'Standard Enrollment',
+                TREX1__Status__c             = getFirstEnrollmentStatus(),
+                TREX1__Start_Date__c         = Date.today()
+            )
+        };
+    }
+
+    @isTest
+    static void testGetEnrollmentStatuses_returnsActiveValues() {
+        Test.startTest();
+        List<RegistrationReportController.PicklistOption> statuses =
+            RegistrationReportController.getEnrollmentStatuses();
+        Test.stopTest();
+
+        Assert.isFalse(statuses.isEmpty(), 'Enrollment status picklist should return values');
+        for (RegistrationReportController.PicklistOption opt : statuses) {
+            Assert.isNotNull(opt.value, 'Every status option should carry a value');
+            Assert.isNotNull(opt.label, 'Every status option should carry a label');
+        }
+    }
+
+    @isTest
+    static void testRunEnrollmentReport_oneRowPerEnrollment() {
+        makeEnrollments();
+
+        Test.startTest();
+        RegistrationReportController.ReportResult result =
+            RegistrationReportController.runEnrollmentReport(
+                null, null, null, null, null, null, null, null
+            );
+        Test.stopTest();
+
+        Assert.areEqual(2, result.totalRows,
+            'One registration with two course options should produce two enrollment rows');
+        Assert.areEqual(2, result.questionColumns.size(),
+            'Both setup questions should appear as columns');
+
+        // The registration's answers repeat on each of its enrollment rows.
+        for (Map<String, Object> row : result.rows) {
+            Assert.isNotNull(row.get('courseOption'), 'Each row should name its course option');
+            Assert.isNotNull(row.get('enrollmentId'), 'Each row should carry its enrollment id');
+            Assert.areEqual('Test User', row.get('contactName'),
+                'Contact comes from the enrollment, not the registration');
+            Assert.areEqual('Test Program', row.get('programName'),
+                'Program is read through the parent registration');
+        }
+    }
+
+    @isTest
+    static void testRunEnrollmentReport_excludesClassroomManagement() {
+        makeEnrollments();
+
+        TREX1__Registration__c reg = [SELECT Id, TREX1__Contact__c FROM TREX1__Registration__c LIMIT 1];
+        TREX1__Course_Option__c extra = new TREX1__Course_Option__c(Name = 'Classroom Generated');
+        insert extra;
+        insert new TREX1__Course_Option_Enrollment__c(
+            TREX1__coe_Registration__c  = reg.Id,
+            TREX1__coe_Course_Option__c = extra.Id,
+            TREX1__Contact__c           = reg.TREX1__Contact__c,
+            TREX1__Type__c              = 'Classroom Management',
+            TREX1__Status__c            = getFirstEnrollmentStatus(),
+            TREX1__Start_Date__c        = Date.today()
+        );
+
+        Test.startTest();
+        RegistrationReportController.ReportResult result =
+            RegistrationReportController.runEnrollmentReport(
+                null, null, null, null, null, null, null, null
+            );
+        Test.stopTest();
+
+        Assert.areEqual(2, result.totalRows,
+            'Classroom Management enrollments are generated by Traction Rec and must never appear on a roster');
+    }
+
+    @isTest
+    static void testRunEnrollmentReport_filtersByCourseOption() {
+        makeEnrollments();
+
+        Test.startTest();
+        RegistrationReportController.ReportResult result =
+            RegistrationReportController.runEnrollmentReport(
+                null, null, null, 'Beginner', null, null, null, null
+            );
+        Test.stopTest();
+
+        Assert.areEqual(1, result.totalRows,
+            'Course Option filter should match on a fragment of the name');
+        Assert.areEqual('Beginner Swim | Mondays', result.rows[0].get('courseOption'),
+            'The matching course option should be the one returned');
+    }
+
+    @isTest
+    static void testRunEnrollmentReport_noMatchesReturnsEmpty() {
+        makeEnrollments();
+
+        Test.startTest();
+        RegistrationReportController.ReportResult result =
+            RegistrationReportController.runEnrollmentReport(
+                null, null, null, 'Nothing Matches This', null, null, null, null
+            );
+        Test.stopTest();
+
+        Assert.areEqual(0, result.totalRows, 'No matching enrollments should return no rows');
+        Assert.isTrue(result.questionColumns.isEmpty(),
+            'No rows means no question columns to show');
+    }
+
+    @isTest
+    static void testRunEnrollmentReport_withExtraFields() {
+        makeEnrollments();
+
+        Test.startTest();
+        RegistrationReportController.ReportResult result =
+            RegistrationReportController.runEnrollmentReport(
+                null, null, null, null, null, null, null,
+                new List<String>{ 'xreg_trex1__start_date__c', 'xcnt_mailingcity', 'bogus_key' }
+            );
+        Test.stopTest();
+
+        Assert.areEqual(2, result.totalRows, 'Extra fields should not change the row count');
+        Assert.areEqual(Date.today(), result.rows[0].get('xreg_trex1__start_date__c'),
+            'Registration field should be read through the parent relationship');
+        Assert.isFalse(result.rows[0].containsKey('xcnt_mailingcity'),
+            'A field the base query already selects is skipped; it is on the row as mailingAddress');
+        Assert.isFalse(result.rows[0].containsKey('bogus_key'),
+            'Unrecognised field keys should be ignored');
+    }
+
+    // ─── Saved Report Scoping ─────────────────────────────────────────────────
+
+    @isTest
+    static void testGetSavedConfigs_scopedByReportType() {
+        RegistrationReportController.saveConfig(null, 'Reg Report', null, '{}', 'Shared', 'Registrations');
+        RegistrationReportController.saveConfig(null, 'Enr Report', null, '{}', 'Shared', 'Enrollments');
+
+        Test.startTest();
+        List<RegistrationReportController.ConfigSummary> regConfigs =
+            RegistrationReportController.getSavedConfigs('Registrations');
+        List<RegistrationReportController.ConfigSummary> enrConfigs =
+            RegistrationReportController.getSavedConfigs('Enrollments');
+        Test.stopTest();
+
+        Assert.areEqual(1, regConfigs.size(), 'Registration list should hold only the registration report');
+        Assert.areEqual('Reg Report', regConfigs[0].name, 'Wrong report returned for Registrations');
+        Assert.areEqual(1, enrConfigs.size(), 'Enrollment list should hold only the enrollment report');
+        Assert.areEqual('Enr Report', enrConfigs[0].name, 'Wrong report returned for Enrollments');
+    }
+
+    @isTest
+    static void testGetSavedConfigs_blankTypeCountsAsRegistrations() {
+        // A report saved before the enrollment report existed carries no type.
+        Question_Report_Config__c legacy = new Question_Report_Config__c(
+            Name = 'Legacy Report', Config_JSON__c = '{}', Folder_Name__c = 'Old'
+        );
+        insert legacy;
+
+        Test.startTest();
+        List<RegistrationReportController.ConfigSummary> regConfigs =
+            RegistrationReportController.getSavedConfigs('Registrations');
+        List<RegistrationReportController.ConfigSummary> enrConfigs =
+            RegistrationReportController.getSavedConfigs('Enrollments');
+        Test.stopTest();
+
+        Assert.areEqual(1, regConfigs.size(), 'A blank report type should list under Registrations');
+        Assert.areEqual('Legacy Report', regConfigs[0].name, 'Legacy report should be the one listed');
+        Assert.isTrue(enrConfigs.isEmpty(), 'A blank report type must not appear under Enrollments');
     }
 }
 

@@ -46,10 +46,20 @@
             </div>
         </template>
 
-        <!-- ── Saved Reports ── -->
-        <template lwc:if={hasSavedConfigs}>
-            <div class="aqr-configs-bar">
-                <div class="aqr-configs-bar__row">
+        <!-- ── Report type + Saved Reports ── -->
+        <!-- Report type comes first and always shows: it decides what a row is,
+             which statuses apply, and which saved reports are listed below it. -->
+        <div class="aqr-configs-bar">
+            <div class="aqr-configs-bar__row">
+                <div class="aqr-configs-bar__combo aqr-configs-bar__combo--type">
+                    <lightning-combobox
+                        label="Report Type"
+                        value={reportType}
+                        options={reportTypeOptions}
+                        onchange={handleReportTypeChange}>
+                    </lightning-combobox>
+                </div>
+                <template lwc:if={hasSavedConfigs}>
                     <div class="aqr-configs-bar__combo">
                         <lightning-combobox
                             label="Folder"
@@ -62,7 +72,7 @@
                     <template lwc:if={selectedFolderFilter}>
                         <div class="aqr-configs-bar__combo">
                             <lightning-combobox
-                                label="Saved Reports"
+                                label={savedReportsLabel}
                                 placeholder="— Select a report —"
                                 value={selectedConfigId}
                                 options={filteredConfigOptions}
@@ -76,16 +86,16 @@
                     <button class="aqr-btn-sm aqr-btn-sm--danger"
                         disabled={noConfigSelected}
                         onclick={handleDeleteConfig}>Delete</button>
-                </div>
-                <template lwc:if={loadedConfigName}>
-                    <div class="aqr-configs-badge">
-                        <lightning-icon icon-name="utility:check" size="xx-small"
-                            alternative-text="Loaded"></lightning-icon>
-                        Loaded: <strong>{loadedConfigName}</strong>
-                    </div>
                 </template>
             </div>
-        </template>
+            <template lwc:if={loadedConfigName}>
+                <div class="aqr-configs-badge">
+                    <lightning-icon icon-name="utility:check" size="xx-small"
+                        alternative-text="Loaded"></lightning-icon>
+                    Loaded: <strong>{loadedConfigName}</strong>
+                </div>
+            </template>
+        </div>
 
         <!-- ── Body: side-by-side ── -->
         <div class="aqr-body">
@@ -94,7 +104,7 @@
             <div class="aqr-panel">
                 <div class="aqr-panel__scroll">
 
-                    <div class="aqr-panel__title">Build Report</div>
+                    <div class="aqr-panel__title">{panelTitle}</div>
 
                     <!-- Section: Filters -->
                     <div class="aqr-sec__hdr aqr-sec__hdr--first">
@@ -123,6 +133,14 @@
                                 value={courseSessionFilter} placeholder={placeholder.sessionPlaceholder}
                                 oninput={handleCourseSessionChange}>
                         </div>
+                        <template lwc:if={isEnrollmentReport}>
+                            <div class="aqr-field">
+                                <label class="aqr-label" for="aqr-option">Course Option</label>
+                                <input id="aqr-option" type="text" class="aqr-input"
+                                    value={courseOptionFilter} placeholder="part of the option name"
+                                    oninput={handleCourseOptionChange}>
+                            </div>
+                        </template>
                         <div class="aqr-date-grid">
                             <div class="aqr-field">
                                 <label class="aqr-label" for="aqr-from">Start From</label>
@@ -137,7 +155,7 @@
                         </div>
 
                         <div class="aqr-sub" style="margin-top: 0.5rem;">
-                            <span>Status</span>
+                            <span>{statusLabel}</span>
                             <div class="aqr-alln">
                                 <button class={statusAllBtnClass} onclick={showAllStatuses}>All</button>
                                 <button class={statusNoneBtnClass} onclick={showNoneStatuses}>None</button>
@@ -165,7 +183,7 @@
                     </div>
                     <div class="aqr-sec__body">
                         <div class="aqr-sub">
-                            <span>Registration Fields</span>
+                            <span>{fieldSectionLabel}</span>
                             <div class="aqr-alln">
                                 <button class={fieldsAllBtnClass} onclick={showAllFields}>All</button>
                                 <button class={fieldsNoneBtnClass} onclick={showNoneFields}>None</button>
@@ -202,6 +220,10 @@
                                 </div>
                             </template>
                         </div>
+                        <template lwc:if={isEnrollmentReport}>
+                            <p class="aqr-pill-hint">Answers are recorded per registration, so they repeat
+                                across a person's enrollment rows.</p>
+                        </template>
                         <template lwc:if={hasAvailableGroups}>
                             <div class="aqr-pills">
                                 <template for:each={groupFilterItems} for:item="g">
@@ -237,7 +259,7 @@
                         <div>
                             <div class="aqr-count">
                                 <span class="aqr-count__number">{totalRows}</span>
-                                <span class="aqr-count__label">registration(s)</span>
+                                <span class="aqr-count__label">{rowNounPlural}</span>
                             </div>
                             <template lwc:if={filterSummary}>
                                 <div class="aqr-count__summary">{filterSummary}</div>

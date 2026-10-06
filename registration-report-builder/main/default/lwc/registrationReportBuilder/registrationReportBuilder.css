@@ -97,6 +97,14 @@
 }
 .aqr-configs-bar__combo { flex: 1; min-width: 0; }
 
+/* Report type is a fixed, narrower control: it is set once and then read, unlike
+   the folder and saved-report pickers beside it. */
+.aqr-configs-bar__combo--type { flex: 0 0 13.25rem; max-width: 13.25rem; }
+
+@media (max-width: 48em) {
+    .aqr-configs-bar__combo--type { flex: 1 1 100%; max-width: none; }
+}
+
 .aqr-configs-badge {
     display: inline-flex;
     align-items: center;

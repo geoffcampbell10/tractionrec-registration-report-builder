@@ -37,6 +37,11 @@
         <editable>true</editable>
     </fieldPermissions>
     <fieldPermissions>
+        <field>Question_Report_Config__c.Report_Type__c</field>
+        <readable>true</readable>
+        <editable>true</editable>
+    </fieldPermissions>
+    <fieldPermissions>
         <field>Question_Report_Config__c.Last_Run_Date__c</field>
         <readable>true</readable>
         <editable>true</editable>

@@ -4,6 +4,8 @@ import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import SheetJS from '@salesforce/resourceUrl/SheetJS';
 import JsPDF from '@salesforce/resourceUrl/JsPDF';
 import getRegistrationStatuses from '@salesforce/apex/RegistrationReportController.getRegistrationStatuses';
+import getEnrollmentStatuses from '@salesforce/apex/RegistrationReportController.getEnrollmentStatuses';
+import runEnrollmentReport from '@salesforce/apex/RegistrationReportController.runEnrollmentReport';
 import getAvailableFields from '@salesforce/apex/RegistrationReportController.getAvailableFields';
 import runReport from '@salesforce/apex/RegistrationReportController.runReport';
 import getSavedConfigs from '@salesforce/apex/RegistrationReportController.getSavedConfigs';
@@ -12,6 +14,11 @@ import saveConfig from '@salesforce/apex/RegistrationReportController.saveConfig
 import deleteConfig from '@salesforce/apex/RegistrationReportController.deleteConfig';
 
 import getPlaceholders from '@salesforce/apex/RegistrationReportController.getPlaceholders';
+
+// The two report types. These strings are stored on Question_Report_Config__c
+// and matched in Apex, so they are not free text.
+const TYPE_REGISTRATIONS = 'Registrations';
+const TYPE_ENROLLMENTS   = 'Enrollments';
 
 const FIXED_COLUMN_DEFS = [
     { label: 'Name',                fieldName: 'contactName',        type: 'text',       initialWidth: 180, sortable: true  },
@@ -24,6 +31,33 @@ const FIXED_COLUMN_DEFS = [
     { label: 'Start Date',          fieldName: 'startDate',          type: 'date-local', initialWidth: 130, sortable: true  },
     { label: 'Registration Status', fieldName: 'registrationStatus', type: 'text',       initialWidth: 160, sortable: true  },
 ];
+
+// Enrollment rows carry the enrollment's own status and dates alongside the parent
+// registration's. Withdrawal and waitlist columns start hidden: most orgs barely use
+// the waitlist, and showing six near-empty columns by default buries the useful ones.
+const ENROLLMENT_COLUMN_DEFS = [
+    { label: 'Name',                fieldName: 'contactName',        type: 'text',       initialWidth: 180, sortable: true,  defaultOn: true  },
+    { label: 'Email',               fieldName: 'email',              type: 'email',      initialWidth: 200, sortable: false, defaultOn: true  },
+    { label: 'Phone',               fieldName: 'phone',              type: 'phone',      initialWidth: 140, sortable: false, defaultOn: true  },
+    { label: 'Mailing Address',     fieldName: 'mailingAddress',     type: 'text',       initialWidth: 240, sortable: false, defaultOn: true  },
+    { label: 'Course Option',       fieldName: 'courseOption',       type: 'text',       initialWidth: 240, sortable: true,  defaultOn: true  },
+    { label: 'Enrollment Status',   fieldName: 'enrollmentStatus',   type: 'text',       initialWidth: 160, sortable: true,  defaultOn: true  },
+    { label: 'Start Date',          fieldName: 'startDate',          type: 'date-local', initialWidth: 130, sortable: true,  defaultOn: true  },
+    { label: 'Program',             fieldName: 'programName',        type: 'text',       initialWidth: 180, sortable: true,  defaultOn: true  },
+    { label: 'Course',              fieldName: 'courseName',         type: 'text',       initialWidth: 200, sortable: true,  defaultOn: true  },
+    { label: 'Course Session',      fieldName: 'courseSession',      type: 'text',       initialWidth: 180, sortable: true,  defaultOn: true  },
+    { label: 'Registration Status', fieldName: 'registrationStatus', type: 'text',       initialWidth: 160, sortable: true,  defaultOn: false },
+    { label: 'Withdrawal Date',     fieldName: 'withdrawalDate',     type: 'date-local', initialWidth: 140, sortable: true,  defaultOn: false },
+    { label: 'Waitlist Status',     fieldName: 'waitlistStatus',     type: 'text',       initialWidth: 140, sortable: true,  defaultOn: false },
+    { label: 'Waitlist Priority',   fieldName: 'waitlistPriority',   type: 'text',       initialWidth: 140, sortable: true,  defaultOn: false },
+    { label: 'Waitlist Expires',    fieldName: 'waitlistExpireDate', type: 'date-local', initialWidth: 140, sortable: true,  defaultOn: false },
+];
+
+function defaultVisibility(defs) {
+    const v = {};
+    defs.forEach(c => { v[c.fieldName] = c.defaultOn !== false; });
+    return v;
+}
 
 export default class RegistrationReportBuilder extends LightningElement {
 
@@ -39,10 +73,16 @@ export default class RegistrationReportBuilder extends LightningElement {
 
     pdfLoaded = false;
 
+    // ── Report type ────────────────────────────────────────────────────────────
+    // Chosen before anything else. It decides which object the report runs over,
+    // which status list applies, and which saved reports are listed.
+    reportType = TYPE_REGISTRATIONS;
+
     // ── Filter values ──────────────────────────────────────────────────────────
     courseNameFilter    = '';
     courseSessionFilter = '';
     programNameFilter   = '';
+    courseOptionFilter  = '';   // enrollment report only
     selectedStatuses    = [];
     startDateFrom       = '';
     startDateTo         = '';
@@ -50,6 +90,9 @@ export default class RegistrationReportBuilder extends LightningElement {
     // ── Picklist / config options ──────────────────────────────────────────────
     statusOptions      = [];
     savedConfigOptions = [];
+    // Each type's statuses, fetched once and kept. Registration and enrollment
+    // vocabularies are close but not identical, so they must not be shared.
+    statusOptionsByType = {};
 
     // ── Saved report state ────────────────────────────────────────────────────
     selectedConfigId      = '';
@@ -73,11 +116,7 @@ export default class RegistrationReportBuilder extends LightningElement {
     selectedGroups     = [];
 
     // ── Column visibility ──────────────────────────────────────────────────────
-    fixedColVisible = {
-        contactName: true, email: true, phone: true, mailingAddress: true,
-        programName: true, courseName: true, courseSession: true,
-        startDate: true, registrationStatus: true
-    };
+    fixedColVisible = defaultVisibility(FIXED_COLUMN_DEFS);
 
     // ── Extra columns (field picker) ───────────────────────────────────────────
     availableFields   = [];   // { apiKey, label, groupName, fieldType } from Apex
@@ -118,11 +157,13 @@ export default class RegistrationReportBuilder extends LightningElement {
         try {
             const [statuses, configs, fields, placeholders] = await Promise.all([
                 getRegistrationStatuses(),
-                getSavedConfigs(),
+                getSavedConfigs({ reportType: this.reportType }),
                 getAvailableFields(),
                 getPlaceholders()
             ]);
-            this.statusOptions    = statuses.map(s => ({ label: s.label, value: s.value }));
+            this.statusOptionsByType[TYPE_REGISTRATIONS] =
+                statuses.map(s => ({ label: s.label, value: s.value }));
+            this.statusOptions    = this.statusOptionsByType[TYPE_REGISTRATIONS];
             this.selectedStatuses = this.statusOptions.map(s => s.value);
             this.availableFields  = fields || [];
             this.setSavedConfigOptions(configs);
@@ -159,9 +200,67 @@ export default class RegistrationReportBuilder extends LightningElement {
 
     async refreshSavedConfigs() {
         try {
-            const configs = await getSavedConfigs();
+            const configs = await getSavedConfigs({ reportType: this.reportType });
             this.setSavedConfigOptions(configs);
         } catch (e) { /* non-critical */ }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Report type
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /**
+     * Switching type is a different report over a different object, not a filter
+     * change. Results, saved-report selection and column visibility all reset, so
+     * nothing from the previous type can be mistaken for the new one.
+     */
+    async handleReportTypeChange(event) {
+        const next = event.detail.value;
+        if (next === this.reportType) return;
+
+        this.reportType = next;
+
+        this.hasResults        = false;
+        this.tableData         = [];
+        this.tableColumns      = [];
+        this.totalRows         = 0;
+        this.allQuestionColumns = [];
+        this.availableGroups   = [];
+        this.selectedGroups    = [];
+        this.filtersPending    = false;
+        this.errorMessage      = '';
+        this.tooManyResultsMsg = '';
+
+        this.currentConfigId      = null;
+        this.loadedConfigName     = '';
+        this.selectedConfigId     = '';
+        this.selectedFolderFilter = '';
+        this.showSaveForm         = false;
+        this.saveConfigName       = '';
+
+        this.courseOptionFilter = '';
+        this.fixedColVisible    = defaultVisibility(this.activeColumnDefs);
+
+        this.isLoading = true;
+        try {
+            await Promise.all([ this.loadStatusesForType(), this.refreshSavedConfigs() ]);
+        } catch (e) {
+            this.errorMessage = this.extractError(e);
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    async loadStatusesForType() {
+        if (!this.statusOptionsByType[this.reportType]) {
+            const statuses = this.reportType === TYPE_ENROLLMENTS
+                ? await getEnrollmentStatuses()
+                : await getRegistrationStatuses();
+            this.statusOptionsByType[this.reportType] =
+                statuses.map(s => ({ label: s.label, value: s.value }));
+        }
+        this.statusOptions    = this.statusOptionsByType[this.reportType];
+        this.selectedStatuses = this.statusOptions.map(s => s.value);
     }
 
     handleFolderFilterChange(event) {
@@ -182,6 +281,7 @@ export default class RegistrationReportBuilder extends LightningElement {
             this.courseNameFilter    = config.courseNameFilter    || '';
             this.courseSessionFilter = config.courseSessionFilter || '';
             this.programNameFilter   = config.programNameFilter   || '';
+            this.courseOptionFilter  = config.courseOptionFilter  || '';
             this.selectedStatuses    = config.statusFilters       || [];
             this.startDateFrom       = config.startDateFrom       || '';
             this.startDateTo         = config.startDateTo         || '';
@@ -234,6 +334,7 @@ export default class RegistrationReportBuilder extends LightningElement {
     handleCourseNameChange(event)    { this.courseNameFilter    = event.target.value; this.filtersPending = true; }
     handleCourseSessionChange(event) { this.courseSessionFilter = event.target.value; this.filtersPending = true; }
     handleProgramNameChange(event)   { this.programNameFilter   = event.target.value; this.filtersPending = true; }
+    handleCourseOptionChange(event)  { this.courseOptionFilter  = event.target.value; this.filtersPending = true; }
     handleStartDateFromChange(event) { this.startDateFrom       = event.target.value; this.filtersPending = true; }
     handleStartDateToChange(event)   { this.startDateTo         = event.target.value; this.filtersPending = true; }
 
@@ -250,6 +351,7 @@ export default class RegistrationReportBuilder extends LightningElement {
 
     clearFilters() {
         this.courseNameFilter = this.courseSessionFilter = this.programNameFilter = '';
+        this.courseOptionFilter = '';
         this.startDateFrom    = this.startDateTo = '';
         this.selectedStatuses = this.statusOptions.map(s => s.value);
         this.filtersPending   = true;
@@ -267,7 +369,7 @@ export default class RegistrationReportBuilder extends LightningElement {
         this.showSaveForm      = false;
 
         try {
-            const result = await runReport({
+            const args = {
                 courseNameFilter:    this.courseNameFilter    || null,
                 courseSessionFilter: this.courseSessionFilter || null,
                 programNameFilter:   this.programNameFilter   || null,
@@ -275,13 +377,18 @@ export default class RegistrationReportBuilder extends LightningElement {
                 startDateFrom:       this.startDateFrom || null,
                 startDateTo:         this.startDateTo   || null,
                 extraFields:         this.selectedExtraKeys.length > 0 ? this.selectedExtraKeys : null
-            });
+            };
+
+            const result = this.isEnrollmentReport
+                ? await runEnrollmentReport({ ...args, courseOptionFilter: this.courseOptionFilter || null })
+                : await runReport(args);
 
             this.totalRows          = result.totalRows;
             this.allQuestionColumns = result.questionColumns;
             this.tableData          = result.rows.map(row => ({
                 ...row,
-                registrationUrl: '/' + row.registrationId
+                registrationUrl: row.registrationId ? '/' + row.registrationId : null,
+                enrollmentUrl:   row.enrollmentId   ? '/' + row.enrollmentId   : null
             }));
             this.sortedBy           = '';
             this.sortedDirection    = 'asc';
@@ -303,7 +410,7 @@ export default class RegistrationReportBuilder extends LightningElement {
             this.filtersPending = false;
 
             if (result.totalRows === 0) {
-                this.toast('No Results', 'No registrations matched your filters.', 'info');
+                this.toast('No Results', `No ${this.rowNoun}s matched your filters.`, 'info');
             }
         } catch (e) {
             const msg = this.extractError(e);
@@ -329,14 +436,14 @@ export default class RegistrationReportBuilder extends LightningElement {
 
     showAllFields() {
         const v = {};
-        FIXED_COLUMN_DEFS.forEach(c => { v[c.fieldName] = true; });
+        this.activeColumnDefs.forEach(c => { v[c.fieldName] = true; });
         this.fixedColVisible = v;
         this.rebuildVisibleColumns();
     }
 
     showNoneFields() {
         const v = {};
-        FIXED_COLUMN_DEFS.forEach(c => { v[c.fieldName] = false; });
+        this.activeColumnDefs.forEach(c => { v[c.fieldName] = false; });
         this.fixedColVisible = v;
         this.rebuildVisibleColumns();
     }
@@ -410,7 +517,9 @@ export default class RegistrationReportBuilder extends LightningElement {
     hideAllGroups() { this.selectedGroups = []; this.rebuildVisibleColumns(); }
 
     rebuildVisibleColumns() {
-        const visibleFixed = FIXED_COLUMN_DEFS.filter(c => this.fixedColVisible[c.fieldName] !== false);
+        const visibleFixed = this.activeColumnDefs
+            .filter(c => this.fixedColVisible[c.fieldName] !== false)
+            .map(({ defaultOn, ...col }) => col);   // defaultOn is ours, not datatable's
 
         const extraFieldMap = new Map(this.availableFields.map(f => [f.apiKey, f]));
         const extraCols = this.selectedExtraKeys
@@ -439,15 +548,16 @@ export default class RegistrationReportBuilder extends LightningElement {
                 sortable:     true
             }));
 
-        const regLinkCol = {
-            label:          'Registration',
-            fieldName:      'registrationUrl',
+        // The enrollment report links to the enrollment, since that is what the row is.
+        const linkCol = {
+            label:          this.isEnrollmentReport ? 'Enrollment' : 'Registration',
+            fieldName:      this.isEnrollmentReport ? 'enrollmentUrl' : 'registrationUrl',
             type:           'url',
             typeAttributes: { label: 'View', target: '_blank' },
             initialWidth:   110,
             sortable:       false
         };
-        this.tableColumns = [...visibleFixed, ...extraCols, ...questionCols, regLinkCol];
+        this.tableColumns = [...visibleFixed, ...extraCols, ...questionCols, linkCol];
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -504,7 +614,8 @@ export default class RegistrationReportBuilder extends LightningElement {
                 name:        this.saveConfigName,
                 description: this.saveConfigDesc,
                 configJSON:  this.buildConfigJSON(),
-                folderName:  this.saveConfigFolder
+                folderName:  this.saveConfigFolder,
+                reportType:  this.reportType
             });
             this.currentConfigId  = newId;
             this.loadedConfigName = this.saveConfigName;
@@ -529,7 +640,7 @@ export default class RegistrationReportBuilder extends LightningElement {
             this.tableColumns.map(c => esc(c.label)).join(','),
             ...this.tableData.map(row => this.tableColumns.map(c => esc(row[c.fieldName])).join(','))
         ];
-        this.downloadFile(rows.join('\r\n'), `AnsweredQuestions_${this.isoDate()}.csv`, 'text/csv;charset=utf-8;');
+        this.downloadFile(rows.join('\r\n'), `${this.exportBaseName}_${this.isoDate()}.csv`, 'text/csv;charset=utf-8;');
     }
 
     handleExportExcel() {
@@ -542,7 +653,7 @@ export default class RegistrationReportBuilder extends LightningElement {
         ws['!cols']  = this.tableColumns.map(c => ({ wch: Math.round((c.initialWidth || 160) / 7) }));
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Report');
-        XLSX.writeFile(wb, `AnsweredQuestions_${this.isoDate()}.xlsx`);
+        XLSX.writeFile(wb, `${this.exportBaseName}_${this.isoDate()}.xlsx`);
     }
 
     handleExportPdf() {
@@ -601,7 +712,7 @@ export default class RegistrationReportBuilder extends LightningElement {
                     doc.setFont('helvetica', 'bold');
                     doc.setFontSize(14);
                     doc.setTextColor(15, 23, 42);
-                    doc.text('Registration Report', data.settings.margin.left, 36);
+                    doc.text(this.reportTitle, data.settings.margin.left, 36);
 
                     doc.setFont('helvetica', 'normal');
                     doc.setFontSize(8);
@@ -613,7 +724,7 @@ export default class RegistrationReportBuilder extends LightningElement {
                             data.settings.margin.left, 50
                         );
                     }
-                    doc.text(`${this.totalRows} registration(s)`, data.settings.margin.left, 62);
+                    doc.text(`${this.totalRows} ${this.rowNoun}(s)`, data.settings.margin.left, 62);
 
                     const w = doc.internal.pageSize.getWidth();
                     const h = doc.internal.pageSize.getHeight();
@@ -631,7 +742,7 @@ export default class RegistrationReportBuilder extends LightningElement {
             // Lightning Web Security allows; blob URLs are rejected.
             this.downloadDataUri(
                 this.pdfDataUri(doc),
-                `RegistrationReport_${this.isoDate()}.pdf`
+                `${this.exportBaseName}_${this.isoDate()}.pdf`
             );
         } catch (e) {
             // Salesforce runs this component inside Lightning Web Security, which
@@ -777,8 +888,38 @@ export default class RegistrationReportBuilder extends LightningElement {
         }));
     }
 
+    // ── Report type ────────────────────────────────────────────────────────────
+
+    get isEnrollmentReport() { return this.reportType === TYPE_ENROLLMENTS; }
+
+    get reportTypeOptions() {
+        return [
+            { label: 'Registrations',             value: TYPE_REGISTRATIONS },
+            { label: 'Course Option Enrollments', value: TYPE_ENROLLMENTS   }
+        ];
+    }
+
+    get activeColumnDefs() {
+        return this.isEnrollmentReport ? ENROLLMENT_COLUMN_DEFS : FIXED_COLUMN_DEFS;
+    }
+
+    // A row is an enrollment or a registration, and every count, toast, export
+    // name and PDF heading says which, so two exports are never confused.
+    get rowNoun()         { return this.isEnrollmentReport ? 'enrollment' : 'registration'; }
+    get rowNounPlural()   { return this.rowNoun + '(s)'; }
+    get statusLabel()     { return this.isEnrollmentReport ? 'Enrollment Status' : 'Status'; }
+    get panelTitle()      { return this.isEnrollmentReport ? 'Build Enrollment Report' : 'Build Report'; }
+    get savedReportsLabel() {
+        return this.isEnrollmentReport ? 'Saved Enrollment Reports' : 'Saved Reports';
+    }
+    get reportTitle()     { return this.isEnrollmentReport ? 'Enrollment Report' : 'Registration Report'; }
+    get fieldSectionLabel() {
+        return this.isEnrollmentReport ? 'Enrollment Fields' : 'Registration Fields';
+    }
+    get exportBaseName()  { return this.isEnrollmentReport ? 'EnrollmentReport' : 'RegistrationReport'; }
+
     get fixedColumnOptions() {
-        return FIXED_COLUMN_DEFS.map(col => ({
+        return this.activeColumnDefs.map(col => ({
             label:     col.label,
             fieldName: col.fieldName,
             pillClass: 'aqr-pill' + (this.fixedColVisible[col.fieldName] !== false ? ' aqr-pill--active' : '')
@@ -827,9 +968,11 @@ export default class RegistrationReportBuilder extends LightningElement {
 
     buildConfigJSON() {
         return JSON.stringify({
+            reportType:          this.reportType,
             courseNameFilter:    this.courseNameFilter    || null,
             courseSessionFilter: this.courseSessionFilter || null,
             programNameFilter:   this.programNameFilter   || null,
+            courseOptionFilter:  this.courseOptionFilter  || null,
             statusFilters:       this.selectedStatuses.length > 0 ? this.selectedStatuses : null,
             startDateFrom:       this.startDateFrom || null,
             startDateTo:         this.startDateTo   || null,
@@ -842,7 +985,10 @@ export default class RegistrationReportBuilder extends LightningElement {
         if (this.programNameFilter)        parts.push(`Program: "${this.programNameFilter}"`);
         if (this.courseNameFilter)         parts.push(`Course: "${this.courseNameFilter}"`);
         if (this.courseSessionFilter)      parts.push(`Session: "${this.courseSessionFilter}"`);
-        if (this.selectedStatuses?.length) parts.push(`Status: ${this.selectedStatuses.join(', ')}`);
+        if (this.courseOptionFilter && this.isEnrollmentReport) {
+            parts.push(`Course Option: "${this.courseOptionFilter}"`);
+        }
+        if (this.selectedStatuses?.length) parts.push(`${this.statusLabel}: ${this.selectedStatuses.join(', ')}`);
         if (this.startDateFrom)            parts.push(`From ${this.startDateFrom}`);
         if (this.startDateTo)              parts.push(`To ${this.startDateTo}`);
         return parts.length ? parts.join(' · ') : 'No filters applied';

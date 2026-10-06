@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Report_Type__c</fullName>
+    <label>Report Type</label>
+    <description>Which report this saved configuration belongs to. Saved reports are listed under the report type they were built in, so a registration report never loads into the enrollment report. Blank means Registrations, which is what reports saved before the enrollment report existed carry.</description>
+    <inlineHelpText>Set automatically when the report is saved. Blank counts as Registrations.</inlineHelpText>
+    <type>Picklist</type>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Registrations</fullName>
+                <default>true</default>
+                <label>Registrations</label>
+            </value>
+            <value>
+                <fullName>Enrollments</fullName>
+                <default>false</default>
+                <label>Enrollments</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>
