@@ -1,5 +1,27 @@
 # Changelog
 
+## Package versions and the Traction Rec version they need
+
+The install link is an unmanaged package built out of a production org, which means
+each published version records the Traction Rec version installed in that org **at
+the moment it was published**, and requires that version or later.
+
+That requirement is frozen per link. Publishing a newer version later does not
+change an older one, so **older links keep working for orgs on older Traction Rec**
+and are never removed.
+
+| Package version | Needs Traction Rec | Install link |
+|---|---|---|
+| 1.1 (`v1.1.0`) | 60.37 or later | [install](https://login.salesforce.com/packaging/installPackage.apexp?p0=04tRQ000000BFq9YAG) |
+
+Pick the newest row your org's Traction Rec version satisfies. On an older version
+than any row lists, use the ZIP from the matching release below and deploy it through
+Workbench — the ZIP has no version floor at all.
+
+You can check your version at **Setup → Installed Packages → Traction Rec**.
+
+---
+
 ## v1.1.0 — 2026-10-01
 
 Reported by the DC JCC (Shoshana Strom and Courtney Brown) after their first run

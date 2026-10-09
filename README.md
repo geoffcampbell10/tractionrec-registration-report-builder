@@ -97,6 +97,24 @@ create one.
 
 ## Deployment
 
+Two ways in. The install link is quicker; the ZIP works in every org regardless of
+Traction Rec version, so it stays supported rather than being a legacy path.
+
+### Install link
+
+Each published package version requires the Traction Rec version that was installed
+in the publishing org when that version was built, **or later**. The requirement is
+frozen per link, so older links keep working for orgs on older Traction Rec and are
+never removed. The table of versions and what each one needs is in
+**[CHANGELOG.md](CHANGELOG.md)**.
+
+If the install page says *Mismatching Versions* or *not yet available on your
+instance*, your org is on an older Salesforce seasonal release than the publishing
+org. That clears on its own once Salesforce upgrades your org. Use the ZIP in the
+meantime; it is not affected.
+
+### ZIP
+
 For a full, step-by-step walkthrough (no CLI required), see **[install.md](install.md)**.
 It covers both:
 
